@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Ezamowienia Extension Options</title>
+    <link rel="stylesheet" href="options.css">
+  </head>
+  <body>
+    <main class="container">
+      <h1>Ezamowienia Extension Options</h1>
+
+      <section class="card">
+        <h2>General</h2>
+        <label class="row">
+          <span>Link placement</span>
+          <select data-setting="linkPlacement">
+            <option value="cell">Cell</option>
+            <option value="column">Extra column</option>
+          </select>
+        </label>
+        <label class="row">
+          <span>Freeze columns</span>
+          <select data-setting="freezeColumns">
+            <option value="0">Off</option>
+            <option value="1">First column</option>
+            <option value="2">First two columns</option>
+          </select>
+        </label>
+        <label class="row">
+          <span>Closing soon days</span>
+          <input type="number" min="1" max="30" data-setting="closingSoonDays">
+        </label>
+      </section>
+
+      <section class="card">
+        <h2>Behavior</h2>
+        <label class="row"><input type="checkbox" data-setting="rowClickOpen"> Row click opens offer</label>
+        <label class="row"><input type="checkbox" data-setting="openInBackground"> Open in background tab</label>
+        <label class="row"><input type="checkbox" data-setting="enableMiddleClick"> Middle click opens offer</label>
+        <label class="row"><input type="checkbox" data-setting="keyboardNav"> Keyboard navigation</label>
+        <label class="row"><input type="checkbox" data-setting="rememberScroll"> Remember scroll position</label>
+      </section>
+
+      <section class="card">
+        <h2>UI</h2>
+        <label class="row"><input type="checkbox" data-setting="highlightRows"> Highlight rows on hover</label>
+        <label class="row"><input type="checkbox" data-setting="showTooltips"> Title tooltips</label>
+        <label class="row"><input type="checkbox" data-setting="showCopyButtons"> Copy buttons</label>
+        <label class="row"><input type="checkbox" data-setting="showCopyToast"> Copy toast</label>
+        <label class="row"><input type="checkbox" data-setting="stickyHeader"> Sticky header</label>
+        <label class="row"><input type="checkbox" data-setting="showVisited"> Mark opened rows</label>
+        <label class="row"><input type="checkbox" data-setting="inlineExpand"> Inline expand</label>
+        <label class="row"><input type="checkbox" data-setting="showBadges"> Show status badges</label>
+        <label class="row"><input type="checkbox" data-setting="showMiniToolbar"> Sticky toolbar</label>
+        <label class="row"><input type="checkbox" data-setting="quickJump"> Quick jump search</label>
+        <label class="row"><input type="checkbox" data-setting="multiSelect"> Multi-select</label>
+      </section>
+
+      <section class="card">
+        <h2>Filters</h2>
+        <label class="row"><input type="checkbox" data-setting="rememberFilters"> Remember filter values</label>
+      </section>
+    </main>
+
+    <script src="options.js"></script>
+  </body>
+</html>

@@ -3,8 +3,10 @@
   const ROW_SELECTOR = 'tr.tr-link';
   const SETTINGS_KEY = 'ezamSettings';
   const FILTERS_KEY = 'ezamFilters';
+  const PRESETS_KEY = 'ezamFilterPresets';
   const OPENED_KEY = 'ezamOpenedIds';
-  const LIST_PATH_RE = /^\/mp-client\/tenders\/?$/;
+  const SCROLL_KEY = 'ezamScrollState';
+  const LIST_PATH_RE = /^\/mp-client\/(tenders|search\/list)\/?$/;
 
   if (!LIST_PATH_RE.test(window.location.pathname)) {
     return;
@@ -21,11 +23,23 @@
     showCopyToast: true,
     rememberFilters: true,
     stickyHeader: true,
-    showVisited: true
+    showVisited: true,
+    quickJump: true,
+    keyboardNav: true,
+    inlineExpand: true,
+    showBadges: true,
+    rememberScroll: true,
+    showMiniToolbar: true,
+    multiSelect: true,
+    freezeColumns: 1,
+    closingSoonDays: 3
   };
 
   let settings = { ...DEFAULTS };
   const openedIds = new Set(loadOpenedIds());
+  const selectedIds = new Set();
+  let rowCursor = -1;
+  let toolbar = null;
 
   function loadOpenedIds() {
     try {
@@ -72,9 +86,9 @@
   }
 
   function extractId(cells, row) {
-    if (cells.length >= 2) {
-      const id = cells[1].textContent.trim();
-      if (id && /^ocds-/.test(id)) return id;
+    for (const cell of cells) {
+      const text = cell.textContent.trim();
+      if (/^ocds-/.test(text)) return text;
     }
 
     const fallback = row.textContent.match(/ocds-[a-z0-9-]+/i);
@@ -86,19 +100,38 @@
     if (opened) opened.opener = null;
   }
 
-  function openWithBackground(url) {
+  function openWithBackground(url, active) {
     if (chrome.runtime && chrome.runtime.sendMessage) {
-      chrome.runtime.sendMessage({ type: 'openTab', url, active: false });
+      chrome.runtime.sendMessage({ type: 'openTab', url, active: Boolean(active) });
       return true;
     }
     return false;
   }
 
-  function openOffer(url) {
-    if (settings.openInBackground) {
-      if (openWithBackground(url)) return;
+  function openOffer(url, overrides = {}) {
+    const useBackground = overrides.background ?? settings.openInBackground;
+    if (useBackground) {
+      if (openWithBackground(url, false)) return;
     }
     openInNewTab(url);
+  }
+
+  function showActionFeedback(target, message) {
+    if (!target) return;
+    const original = target.dataset.ezamLabel || target.textContent;
+    target.dataset.ezamLabel = original;
+    target.textContent = message;
+    setTimeout(() => {
+      if (target.dataset.ezamIcon) {
+        target.textContent = '';
+        const icon = document.createElement('i');
+        icon.className = 'material-icons ezam-icon';
+        icon.textContent = target.dataset.ezamIcon;
+        target.appendChild(icon);
+      } else {
+        target.textContent = target.dataset.ezamLabel || original;
+      }
+    }, 1000);
   }
 
   function ensureToastContainer() {
@@ -119,24 +152,6 @@
     toast._ezamTimer = setTimeout(() => {
       toast.classList.remove('ezam-toast--show');
     }, 1600);
-  }
-
-  function showActionFeedback(target, message) {
-    if (!target) return;
-    const original = target.dataset.ezamLabel || target.textContent;
-    target.dataset.ezamLabel = original;
-    target.textContent = message;
-    setTimeout(() => {
-      if (target.dataset.ezamIcon) {
-        target.textContent = '';
-        const icon = document.createElement('i');
-        icon.className = 'material-icons ezam-icon';
-        icon.textContent = target.dataset.ezamIcon;
-        target.appendChild(icon);
-      } else {
-        target.textContent = target.dataset.ezamLabel || original;
-      }
-    }, 1000);
   }
 
   function markOpened(id, row) {
@@ -173,7 +188,11 @@
         if (event.key !== 'Enter') return;
         const offerUrl = anchor.dataset.ezamOfferUrl;
         if (!offerUrl) return;
-        if (event.shiftKey) return;
+        if (event.shiftKey) {
+          event.preventDefault();
+          openOffer(offerUrl, { background: true });
+          return;
+        }
         event.preventDefault();
         window.location.href = offerUrl;
       });
@@ -204,7 +223,7 @@
     });
   }
 
-  function buildActionButtons(id, url, row) {
+  function buildActionButtons(id, url) {
     const container = document.createElement('span');
     container.className = 'ezam-actions';
 
@@ -218,6 +237,7 @@
     copyIdIcon.className = 'material-icons ezam-icon';
     copyIdIcon.textContent = 'content_copy';
     copyIdBtn.appendChild(copyIdIcon);
+
     copyIdBtn.addEventListener('click', (event) => {
       event.stopPropagation();
       copyToClipboard(id)
@@ -238,6 +258,7 @@
     copyLinkIcon.className = 'material-icons ezam-icon';
     copyLinkIcon.textContent = 'link';
     copyLinkBtn.appendChild(copyLinkIcon);
+
     copyLinkBtn.addEventListener('click', (event) => {
       event.stopPropagation();
       copyToClipboard(url)
@@ -254,6 +275,51 @@
     return container;
   }
 
+  function buildExpandButton(row, detailsRow) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'ezam-action-btn btn btn-outline-secondary btn-sm';
+    button.title = 'Toggle details';
+    button.setAttribute('aria-label', 'Toggle details');
+    button.textContent = 'More';
+
+    button.addEventListener('click', (event) => {
+      event.stopPropagation();
+      detailsRow.classList.toggle('ezam-expand-row--open');
+      button.textContent = detailsRow.classList.contains('ezam-expand-row--open')
+        ? 'Less'
+        : 'More';
+    });
+
+    return button;
+  }
+
+  function buildSelectCheckbox(id) {
+    const wrapper = document.createElement('span');
+    wrapper.className = 'ezam-select';
+
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.className = 'ezam-select-box';
+    checkbox.checked = selectedIds.has(id);
+
+    checkbox.addEventListener('click', (event) => {
+      event.stopPropagation();
+    });
+
+    checkbox.addEventListener('change', () => {
+      if (checkbox.checked) {
+        selectedIds.add(id);
+      } else {
+        selectedIds.delete(id);
+      }
+      updateToolbarSelection();
+    });
+
+    wrapper.appendChild(checkbox);
+    return wrapper;
+  }
+
   function ensureExtraColumn(table) {
     if (!table) return;
 
@@ -261,7 +327,7 @@
     if (headerRow && !headerRow.querySelector('th.ezam-extra-col')) {
       const th = document.createElement('th');
       th.className = 'ezam-extra-col';
-      th.textContent = 'Otworz';
+      th.textContent = 'Open';
       headerRow.appendChild(th);
     }
 
@@ -385,13 +451,14 @@
         const target = event.target;
         if (
           target.closest(
-            'a, button, input, textarea, select, label, .ezam-actions'
+            'a, button, input, textarea, select, label, .ezam-actions, .ezam-select'
           )
         ) {
           return;
         }
         event.preventDefault();
         event.stopPropagation();
+        saveScrollState();
         openOffer(url);
         markOpened(id, row);
       },
@@ -406,7 +473,8 @@
         if (event.target.closest('a, button')) return;
         event.preventDefault();
         event.stopPropagation();
-        openOffer(url);
+        saveScrollState();
+        openOffer(url, { background: true });
         markOpened(id, row);
       },
       true
@@ -420,6 +488,133 @@
     if (text && text.length > 60 && !titleCell.title) {
       titleCell.title = text;
     }
+  }
+
+  function parsePolishDate(text) {
+    if (!text) return null;
+    const cleaned = text.replace(/,/g, '').replace(/godz/g, '').trim();
+    const parts = cleaned.split(/\s+/);
+    if (parts.length < 4) return null;
+    const day = Number(parts[0]);
+    const monthName = parts[1]
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+    const year = Number(parts[2]);
+    const time = parts[3];
+    const monthMap = {
+      stycznia: 0,
+      lutego: 1,
+      marca: 2,
+      kwietnia: 3,
+      maja: 4,
+      czerwca: 5,
+      lipca: 6,
+      sierpnia: 7,
+      wrzesnia: 8,
+      pazdziernika: 9,
+      listopada: 10,
+      grudnia: 11
+    };
+    const month = monthMap[monthName];
+    if (Number.isNaN(day) || Number.isNaN(year) || month === undefined) return null;
+    const [hour, minute] = time.split(':').map((value) => Number(value));
+    return new Date(year, month, day, hour || 0, minute || 0, 0, 0);
+  }
+
+  function applyBadges(row, cells) {
+    if (!settings.showBadges) return;
+    if (cells.length < 9) return;
+
+    const titleCell = cells[0];
+    titleCell.querySelectorAll('.ezam-badge').forEach((badge) => badge.remove());
+
+    const submissionText = cells[7].textContent.trim();
+    const initiationText = cells[8].textContent.trim();
+    const submissionDate = parsePolishDate(submissionText);
+    const initiationDate = parsePolishDate(initiationText);
+
+    const now = new Date();
+    if (submissionDate) {
+      const diffDays = Math.ceil((submissionDate - now) / (1000 * 60 * 60 * 24));
+      if (diffDays >= 0 && diffDays <= settings.closingSoonDays) {
+        const badge = document.createElement('span');
+        badge.className = 'ezam-badge ezam-badge--soon';
+        badge.textContent = 'Closing soon';
+        titleCell.appendChild(badge);
+      }
+    }
+
+    if (initiationDate) {
+      const sameDay = initiationDate.toDateString() === now.toDateString();
+      if (sameDay) {
+        const badge = document.createElement('span');
+        badge.className = 'ezam-badge ezam-badge--new';
+        badge.textContent = 'New';
+        titleCell.appendChild(badge);
+      }
+    }
+  }
+
+  function buildExpandRow(row, cells) {
+    const existing = row.nextElementSibling;
+    if (existing && existing.classList.contains('ezam-expand-row')) {
+      return existing;
+    }
+
+    const detailsRow = document.createElement('tr');
+    detailsRow.className = 'ezam-expand-row';
+
+    const detailCell = document.createElement('td');
+    detailCell.colSpan = row.querySelectorAll('td').length || cells.length;
+    detailCell.className = 'ezam-expand-cell';
+
+    const items = [
+      ['Mode', cells[2]?.textContent.trim()],
+      ['BZP/TED', cells[3]?.textContent.trim()],
+      ['Organization', cells[4]?.textContent.trim()],
+      ['City', cells[5]?.textContent.trim()],
+      ['Province', cells[6]?.textContent.trim()],
+      ['Submission', cells[7]?.textContent.trim()],
+      ['Initiation', cells[8]?.textContent.trim()]
+    ].filter((entry) => entry[1]);
+
+    const list = document.createElement('div');
+    list.className = 'ezam-expand-grid';
+
+    items.forEach(([label, value]) => {
+      const item = document.createElement('div');
+      item.className = 'ezam-expand-item';
+      const labelSpan = document.createElement('span');
+      labelSpan.className = 'ezam-expand-label';
+      labelSpan.textContent = label + ':';
+      const valueSpan = document.createElement('span');
+      valueSpan.className = 'ezam-expand-value';
+      valueSpan.textContent = value;
+      item.appendChild(labelSpan);
+      item.appendChild(valueSpan);
+      list.appendChild(item);
+    });
+
+    detailCell.appendChild(list);
+    detailsRow.appendChild(detailCell);
+    row.insertAdjacentElement('afterend', detailsRow);
+
+    return detailsRow;
+  }
+
+  function getActionsCell(row, cells) {
+    if (settings.linkPlacement === 'column') {
+      let extraCell = row.querySelector('td.ezam-extra-cell');
+      if (!extraCell) {
+        extraCell = document.createElement('td');
+        extraCell.className = 'ezam-extra-cell';
+        row.appendChild(extraCell);
+      }
+      return extraCell;
+    }
+
+    return row.querySelector('td:last-child') || cells[cells.length - 1];
   }
 
   function addLinkToRow(row) {
@@ -439,50 +634,44 @@
     }
 
     applyTooltips(cells);
+    applyBadges(row, cells);
 
     const detailsAnchor = row.querySelector('a:not(.ezam-open-link)');
     if (detailsAnchor) {
       applyAnchor(detailsAnchor, url, id, row);
     }
 
+    const table = row.closest('table');
     if (settings.linkPlacement === 'column') {
-      const table = row.closest('table');
       ensureExtraColumn(table);
+    }
 
-      let extraCell = row.querySelector('td.ezam-extra-cell');
-      if (!extraCell) {
-        extraCell = document.createElement('td');
-        extraCell.className = 'ezam-extra-cell';
-        row.appendChild(extraCell);
-      }
+    const actionsCell = getActionsCell(row, cells);
 
-      let openLink = extraCell.querySelector('a.ezam-open-link');
-      if (!openLink) {
-        openLink = document.createElement('a');
-        openLink.textContent = 'Otworz';
-        extraCell.appendChild(openLink);
-      }
-      applyAnchor(openLink, url, id, row);
+    let openLink = actionsCell.querySelector('a.ezam-open-link');
+    if (!openLink && detailsAnchor && settings.linkPlacement !== 'column') {
+      openLink = detailsAnchor;
+    }
+    if (!openLink) {
+      openLink = document.createElement('a');
+      openLink.textContent = 'Open';
+      actionsCell.appendChild(openLink);
+    }
+    applyAnchor(openLink, url, id, row);
 
-      if (settings.showCopyButtons && !extraCell.querySelector('.ezam-actions')) {
-        extraCell.appendChild(buildActionButtons(id, url, row));
-      }
-    } else {
-      const lastCell = row.querySelector('td:last-child') || cells[cells.length - 1];
-      let openLink = lastCell.querySelector('a.ezam-open-link');
-      if (!openLink && detailsAnchor) {
-        openLink = detailsAnchor;
-      }
-      if (!openLink) {
-        openLink = document.createElement('a');
-        openLink.textContent = 'Otworz';
-        lastCell.appendChild(openLink);
-      }
-      applyAnchor(openLink, url, id, row);
+    if (settings.multiSelect && !actionsCell.querySelector('.ezam-select')) {
+      actionsCell.appendChild(buildSelectCheckbox(id));
+    }
 
-      if (settings.showCopyButtons && !lastCell.querySelector('.ezam-actions')) {
-        lastCell.appendChild(buildActionButtons(id, url, row));
-      }
+    if (settings.inlineExpand && !actionsCell.querySelector('.ezam-expand-toggle')) {
+      const detailsRow = buildExpandRow(row, cells);
+      const expandBtn = buildExpandButton(row, detailsRow);
+      expandBtn.classList.add('ezam-expand-toggle');
+      actionsCell.appendChild(expandBtn);
+    }
+
+    if (settings.showCopyButtons && !actionsCell.querySelector('.ezam-actions')) {
+      actionsCell.appendChild(buildActionButtons(id, url));
     }
 
     bindRowInteractions(row, id, url);
@@ -496,6 +685,20 @@
     const table = document.querySelector('#tenderListTable table');
     if (!table) return;
     table.classList.toggle('ezam-sticky', settings.stickyHeader);
+  }
+
+  function applyFreezeColumns() {
+    const table = document.querySelector('#tenderListTable table');
+    if (!table) return;
+    table.classList.remove('ezam-freeze-1', 'ezam-freeze-2');
+    if (settings.freezeColumns <= 0) return;
+
+    const firstCell = table.querySelector('thead th');
+    if (firstCell) {
+      table.style.setProperty('--ezam-col1-width', `${firstCell.getBoundingClientRect().width}px`);
+    }
+
+    table.classList.add(settings.freezeColumns === 2 ? 'ezam-freeze-2' : 'ezam-freeze-1');
   }
 
   function refreshRows() {
@@ -535,13 +738,68 @@
     });
   }
 
-  function persistFilters(form) {
-    if (!chrome.storage || !chrome.storage.local) return;
+  function collectFilters(form) {
     const payload = {};
     getFilterControls(form).forEach(({ name, field }) => {
       payload[name] = field.value;
     });
+    return payload;
+  }
+
+  function persistFilters(form) {
+    if (!chrome.storage || !chrome.storage.local) return;
+    const payload = collectFilters(form);
     chrome.storage.local.set({ [FILTERS_KEY]: payload });
+  }
+
+  function loadPresets(callback) {
+    if (!chrome.storage || !chrome.storage.local) {
+      callback([]);
+      return;
+    }
+    chrome.storage.local.get(PRESETS_KEY, (data) => {
+      const presets = data[PRESETS_KEY] || [];
+      callback(Array.isArray(presets) ? presets : []);
+    });
+  }
+
+  function savePreset(name, values) {
+    loadPresets((presets) => {
+      const next = presets.filter((preset) => preset.name !== name);
+      next.push({ name, values });
+      chrome.storage.local.set({ [PRESETS_KEY]: next }, updatePresetSelect);
+    });
+  }
+
+  function applyPreset(values) {
+    const form = document.querySelector('app-tender-filters form');
+    if (!form) return;
+    getFilterControls(form).forEach(({ name, field }) => {
+      field.value = values[name] || '';
+      field.dispatchEvent(new Event('input', { bubbles: true }));
+      field.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+  }
+
+  function updatePresetSelect() {
+    if (!toolbar) return;
+    const select = toolbar.querySelector('.ezam-preset-select');
+    if (!select) return;
+
+    loadPresets((presets) => {
+      select.innerHTML = '';
+      const placeholder = document.createElement('option');
+      placeholder.value = '';
+      placeholder.textContent = 'Presets';
+      select.appendChild(placeholder);
+
+      presets.forEach((preset) => {
+        const option = document.createElement('option');
+        option.value = preset.name;
+        option.textContent = preset.name;
+        select.appendChild(option);
+      });
+    });
   }
 
   function setupFilterPersistence() {
@@ -555,6 +813,258 @@
       field.addEventListener('input', () => persistFilters(form));
       field.addEventListener('change', () => persistFilters(form));
     });
+  }
+
+  function getPaginationLinks() {
+    const container = document.querySelector('.pagination-container');
+    if (!container) return {};
+    return {
+      prev: container.querySelector('.prepend-arrow'),
+      next: container.querySelector('.append-arrow')
+    };
+  }
+
+  function getActivePage() {
+    const active = document.querySelector('.pagination li a.active');
+    return active ? active.textContent.trim() : '';
+  }
+
+  function saveScrollState() {
+    if (!settings.rememberScroll) return;
+    const state = {
+      scrollY: window.scrollY,
+      page: getActivePage()
+    };
+    sessionStorage.setItem(SCROLL_KEY, JSON.stringify(state));
+  }
+
+  function restoreScrollState() {
+    if (!settings.rememberScroll) return;
+    const raw = sessionStorage.getItem(SCROLL_KEY);
+    if (!raw) return;
+
+    try {
+      const state = JSON.parse(raw);
+      const active = getActivePage();
+      if (state.page && active && state.page !== active) {
+        const target = Array.from(document.querySelectorAll('.pagination li a')).find(
+          (link) => link.textContent.trim() === state.page
+        );
+        if (target) {
+          target.click();
+          return;
+        }
+      }
+
+      requestAnimationFrame(() => {
+        window.scrollTo(0, state.scrollY || 0);
+      });
+    } catch (error) {
+      // ignore
+    }
+  }
+
+  function updateToolbarSelection() {
+    if (!toolbar) return;
+    const count = toolbar.querySelector('.ezam-selected-count');
+    if (count) {
+      count.textContent = `Selected: ${selectedIds.size}`;
+    }
+  }
+
+  function selectAllRows() {
+    document.querySelectorAll(ROW_SELECTOR).forEach((row) => {
+      const id = row.dataset.ezamOfferId;
+      if (!id) return;
+      const box = row.querySelector('.ezam-select-box');
+      if (box) box.checked = true;
+      selectedIds.add(id);
+    });
+    updateToolbarSelection();
+  }
+
+  function clearSelection() {
+    selectedIds.clear();
+    document.querySelectorAll('.ezam-select-box').forEach((box) => {
+      box.checked = false;
+    });
+    updateToolbarSelection();
+  }
+
+  function openSelected() {
+    const ids = Array.from(selectedIds);
+    if (!ids.length) return;
+    const rows = Array.from(document.querySelectorAll(ROW_SELECTOR));
+    const urls = ids
+      .map((id) => rows.find((row) => row.dataset.ezamOfferId === id))
+      .filter(Boolean)
+      .map((row) => row.dataset.ezamOfferUrl);
+
+    urls.forEach((url, index) => {
+      const active = !settings.openInBackground && index === urls.length - 1;
+      if (openWithBackground(url, active)) return;
+      openInNewTab(url);
+    });
+  }
+
+  function findRowByQuery(query) {
+    const rows = Array.from(document.querySelectorAll(ROW_SELECTOR));
+    const needle = query.trim().toLowerCase();
+    if (!needle) return null;
+
+    return rows.find((row) => {
+      const id = row.dataset.ezamOfferId || '';
+      const title = row.querySelector('td')?.textContent || '';
+      return id.toLowerCase().includes(needle) || title.toLowerCase().includes(needle);
+    });
+  }
+
+  function selectRow(row) {
+    if (!row) return;
+    document.querySelectorAll('.ezam-row-selected').forEach((r) => {
+      r.classList.remove('ezam-row-selected');
+    });
+    row.classList.add('ezam-row-selected');
+    rowCursor = Array.from(document.querySelectorAll(ROW_SELECTOR)).indexOf(row);
+    row.scrollIntoView({ block: 'center' });
+  }
+
+  function moveRowCursor(delta) {
+    const rows = Array.from(document.querySelectorAll(ROW_SELECTOR));
+    if (!rows.length) return;
+    if (rowCursor < 0) rowCursor = 0;
+    rowCursor = Math.max(0, Math.min(rows.length - 1, rowCursor + delta));
+    selectRow(rows[rowCursor]);
+  }
+
+  function handleKeyboardNavigation(event) {
+    if (!settings.keyboardNav) return;
+    const target = event.target;
+    if (target.closest('input, textarea, select, [contenteditable="true"]')) return;
+
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      moveRowCursor(1);
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      moveRowCursor(-1);
+    } else if (event.key === 'Enter') {
+      const rows = Array.from(document.querySelectorAll(ROW_SELECTOR));
+      const row = rows[rowCursor];
+      if (row && row.dataset.ezamOfferUrl) {
+        saveScrollState();
+        if (event.shiftKey) {
+          openOffer(row.dataset.ezamOfferUrl, { background: true });
+        } else {
+          openOffer(row.dataset.ezamOfferUrl);
+        }
+        markOpened(row.dataset.ezamOfferId, row);
+      }
+    } else if (event.altKey && event.key === 'ArrowLeft') {
+      const { prev } = getPaginationLinks();
+      if (prev && !prev.classList.contains('disabled')) prev.click();
+    } else if (event.altKey && event.key === 'ArrowRight') {
+      const { next } = getPaginationLinks();
+      if (next && !next.classList.contains('disabled')) next.click();
+    }
+  }
+
+  function ensureToolbar() {
+    if (!settings.showMiniToolbar) return;
+    if (toolbar) return;
+
+    toolbar = document.createElement('div');
+    toolbar.className = 'ezam-toolbar';
+
+    const jumpInput = document.createElement('input');
+    jumpInput.type = 'text';
+    jumpInput.placeholder = 'Jump to ID/title';
+    jumpInput.className = 'ezam-toolbar-input form-control';
+    jumpInput.addEventListener('input', () => {
+      const row = findRowByQuery(jumpInput.value);
+      if (row) selectRow(row);
+    });
+
+    const prevBtn = document.createElement('button');
+    prevBtn.type = 'button';
+    prevBtn.className = 'btn btn-outline-secondary btn-sm';
+    prevBtn.textContent = 'Prev page';
+    prevBtn.addEventListener('click', () => {
+      const { prev } = getPaginationLinks();
+      if (prev && !prev.classList.contains('disabled')) prev.click();
+    });
+
+    const nextBtn = document.createElement('button');
+    nextBtn.type = 'button';
+    nextBtn.className = 'btn btn-outline-secondary btn-sm';
+    nextBtn.textContent = 'Next page';
+    nextBtn.addEventListener('click', () => {
+      const { next } = getPaginationLinks();
+      if (next && !next.classList.contains('disabled')) next.click();
+    });
+
+    const openSelectedBtn = document.createElement('button');
+    openSelectedBtn.type = 'button';
+    openSelectedBtn.className = 'btn btn-secondary btn-sm';
+    openSelectedBtn.textContent = 'Open selected';
+    openSelectedBtn.addEventListener('click', () => {
+      saveScrollState();
+      openSelected();
+    });
+
+    const selectAllBtn = document.createElement('button');
+    selectAllBtn.type = 'button';
+    selectAllBtn.className = 'btn btn-outline-secondary btn-sm';
+    selectAllBtn.textContent = 'Select all';
+    selectAllBtn.addEventListener('click', selectAllRows);
+
+    const clearBtn = document.createElement('button');
+    clearBtn.type = 'button';
+    clearBtn.className = 'btn btn-outline-secondary btn-sm';
+    clearBtn.textContent = 'Clear';
+    clearBtn.addEventListener('click', clearSelection);
+
+    const selectedCount = document.createElement('span');
+    selectedCount.className = 'ezam-selected-count';
+    selectedCount.textContent = 'Selected: 0';
+
+    const presetSelect = document.createElement('select');
+    presetSelect.className = 'ezam-preset-select form-control';
+    presetSelect.addEventListener('change', () => {
+      const name = presetSelect.value;
+      if (!name) return;
+      loadPresets((presets) => {
+        const preset = presets.find((p) => p.name === name);
+        if (preset) applyPreset(preset.values);
+      });
+    });
+
+    const savePresetBtn = document.createElement('button');
+    savePresetBtn.type = 'button';
+    savePresetBtn.className = 'btn btn-outline-secondary btn-sm';
+    savePresetBtn.textContent = 'Save preset';
+    savePresetBtn.addEventListener('click', () => {
+      const name = window.prompt('Preset name');
+      if (!name) return;
+      const form = document.querySelector('app-tender-filters form');
+      if (!form) return;
+      savePreset(name, collectFilters(form));
+    });
+
+    if (settings.quickJump) toolbar.appendChild(jumpInput);
+    toolbar.appendChild(prevBtn);
+    toolbar.appendChild(nextBtn);
+    if (settings.multiSelect) {
+      toolbar.appendChild(openSelectedBtn);
+      toolbar.appendChild(selectAllBtn);
+      toolbar.appendChild(clearBtn);
+      toolbar.appendChild(selectedCount);
+    }
+    toolbar.appendChild(presetSelect);
+    toolbar.appendChild(savePresetBtn);
+
+    document.body.appendChild(toolbar);
+    updatePresetSelect();
   }
 
   function observeChanges() {
@@ -573,6 +1083,7 @@
       setupFilterPersistence();
       ensureHeaderControls(document.querySelector('#tenderListTable table'));
       applyStickyHeader();
+      applyFreezeColumns();
     }).observe(document.body, { childList: true, subtree: true });
   }
 
@@ -580,8 +1091,14 @@
     applyGlobalClasses();
     scanExisting();
     applyStickyHeader();
+    applyFreezeColumns();
     setupFilterPersistence();
     ensureHeaderControls(document.querySelector('#tenderListTable table'));
+    ensureToolbar();
+    updateToolbarSelection();
+    restoreScrollState();
+    document.addEventListener('keydown', handleKeyboardNavigation);
+    window.addEventListener('beforeunload', saveScrollState);
     observeChanges();
   });
 })();

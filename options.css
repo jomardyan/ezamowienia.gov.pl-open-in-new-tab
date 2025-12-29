@@ -1,0 +1,47 @@
+body {
+  font-family: Lato, sans-serif;
+  background: #f6f6f6;
+  color: #2b2b2b;
+  margin: 0;
+  padding: 24px;
+}
+
+.container {
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+h1 {
+  font-size: 24px;
+  margin-bottom: 16px;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid #dcdcdc;
+  border-radius: 6px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.card h2 {
+  font-size: 18px;
+  margin-top: 0;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 8px 0;
+}
+
+.row span {
+  flex: 1;
+}
+
+input[type="number"],
+select {
+  padding: 6px 8px;
+  min-width: 180px;
+}
