@@ -1,4 +1,5 @@
 const SETTINGS_KEY = 'ezamSettings';
+const LOCALES = ['en', 'pl'];
 
 const DEFAULTS = {
   linkPlacement: 'cell',
@@ -23,16 +24,85 @@ const DEFAULTS = {
   closingSoonDays: 3
 };
 
+function detectLanguage() {
+  const ui = (chrome.i18n && chrome.i18n.getUILanguage && chrome.i18n.getUILanguage()) || '';
+  const lang = (ui || navigator.language || '').toLowerCase();
+  return lang.startsWith('pl') ? 'pl' : 'en';
+}
+
+function normalizeLanguage(language) {
+  return language && language.toLowerCase().startsWith('pl') ? 'pl' : 'en';
+}
+
 function loadSettings() {
   return new Promise((resolve) => {
     chrome.storage.sync.get(SETTINGS_KEY, (data) => {
-      resolve({ ...DEFAULTS, ...(data[SETTINGS_KEY] || {}) });
+      const stored = data[SETTINGS_KEY] || {};
+      const resolvedLanguage = normalizeLanguage(stored.language || detectLanguage());
+      resolve({ ...DEFAULTS, ...stored, language: resolvedLanguage });
     });
   });
 }
 
 function saveSettings(next) {
   chrome.storage.sync.set({ [SETTINGS_KEY]: next });
+}
+
+let messages = {};
+let currentLanguage = 'en';
+
+function formatMessage(text, vars) {
+  if (!vars) return text;
+  return text.replace(/\{(\w+)\}/g, (match, key) => {
+    if (Object.prototype.hasOwnProperty.call(vars, key)) {
+      return String(vars[key]);
+    }
+    return match;
+  });
+}
+
+function t(key, fallback, vars) {
+  const entry = messages[key];
+  const value = entry && entry.message ? entry.message : fallback || key;
+  return formatMessage(value, vars);
+}
+
+async function loadMessages(language) {
+  const normalized = normalizeLanguage(language);
+  if (!LOCALES.includes(normalized)) return;
+  currentLanguage = normalized;
+
+  try {
+    const url = chrome.runtime.getURL(`_locales/${normalized}/messages.json`);
+    const response = await fetch(url);
+    messages = await response.json();
+  } catch (error) {
+    messages = {};
+  }
+}
+
+function applyI18n() {
+  document.documentElement.lang = currentLanguage;
+
+  document.querySelectorAll('[data-i18n]').forEach((el) => {
+    const key = el.dataset.i18n;
+    el.textContent = t(key, el.textContent);
+  });
+
+  document.querySelectorAll('[data-i18n-title]').forEach((el) => {
+    const key = el.dataset.i18nTitle;
+    el.title = t(key, el.title || '');
+  });
+
+  document.querySelectorAll('[data-i18n-placeholder]').forEach((el) => {
+    const key = el.dataset.i18nPlaceholder;
+    el.placeholder = t(key, el.placeholder || '');
+  });
+
+  const titleEl = document.querySelector('title[data-i18n]');
+  if (titleEl) {
+    document.title = t(titleEl.dataset.i18n, document.title);
+  }
 }
 
 function bindInputs(settings) {
@@ -57,10 +127,21 @@ function bindInputs(settings) {
       }
       settings = updated;
       saveSettings(updated);
+
+      if (key === 'language') {
+        loadMessages(updated.language).then(() => {
+          applyI18n();
+        });
+      }
     });
   });
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  loadSettings().then(bindInputs);
+  loadSettings().then((settings) => {
+    loadMessages(settings.language).then(() => {
+      applyI18n();
+      bindInputs(settings);
+    });
+  });
 });

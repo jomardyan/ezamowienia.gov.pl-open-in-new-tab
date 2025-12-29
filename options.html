@@ -3,63 +3,192 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Ezamowienia Extension Options</title>
+    <title data-i18n="optionsTitle">Ezamowienia Extension Options</title>
     <link rel="stylesheet" href="options.css">
   </head>
   <body>
     <main class="container">
-      <h1>Ezamowienia Extension Options</h1>
+      <h1 data-i18n="optionsHeading">Ezamowienia Extension Options</h1>
 
       <section class="card">
-        <h2>General</h2>
-        <label class="row">
-          <span>Link placement</span>
-          <select data-setting="linkPlacement">
-            <option value="cell">Cell</option>
-            <option value="column">Extra column</option>
-          </select>
+        <h2 data-i18n="sectionGeneral">General</h2>
+        <label class="row row--field">
+          <div class="option-text">
+            <span data-i18n="labelLanguage" data-i18n-title="descLanguage">Language</span>
+            <small class="option-help" data-i18n="descLanguage">Choose the UI language for the extension.</small>
+          </div>
+          <div class="option-control">
+            <select data-setting="language">
+              <option value="en" data-i18n="languageEnglish">English</option>
+              <option value="pl" data-i18n="languagePolish">Polski</option>
+            </select>
+          </div>
         </label>
-        <label class="row">
-          <span>Freeze columns</span>
-          <select data-setting="freezeColumns">
-            <option value="0">Off</option>
-            <option value="1">First column</option>
-            <option value="2">First two columns</option>
-          </select>
+        <label class="row row--field">
+          <div class="option-text">
+            <span data-i18n="labelLinkPlacement" data-i18n-title="descLinkPlacement">Link placement</span>
+            <small class="option-help" data-i18n="descLinkPlacement">Choose where the open link appears in the table.</small>
+          </div>
+          <div class="option-control">
+            <select data-setting="linkPlacement">
+              <option value="cell" data-i18n="linkPlacementCell">Cell</option>
+              <option value="column" data-i18n="linkPlacementColumn">Extra column</option>
+            </select>
+          </div>
         </label>
-        <label class="row">
-          <span>Closing soon days</span>
-          <input type="number" min="1" max="30" data-setting="closingSoonDays">
+        <label class="row row--field">
+          <div class="option-text">
+            <span data-i18n="labelFreezeColumns" data-i18n-title="descFreezeColumns">Freeze columns</span>
+            <small class="option-help" data-i18n="descFreezeColumns">Keep the first columns visible while scrolling horizontally.</small>
+          </div>
+          <div class="option-control">
+            <select data-setting="freezeColumns">
+              <option value="0" data-i18n="freezeOff">Off</option>
+              <option value="1" data-i18n="freezeFirst">First column</option>
+              <option value="2" data-i18n="freezeFirstTwo">First two columns</option>
+            </select>
+          </div>
+        </label>
+        <label class="row row--field">
+          <div class="option-text">
+            <span data-i18n="labelClosingSoonDays" data-i18n-title="descClosingSoonDays">Closing soon days</span>
+            <small class="option-help" data-i18n="descClosingSoonDays">Mark offers as closing soon within this many days.</small>
+          </div>
+          <div class="option-control">
+            <input type="number" min="1" max="30" data-setting="closingSoonDays">
+          </div>
         </label>
       </section>
 
       <section class="card">
-        <h2>Behavior</h2>
-        <label class="row"><input type="checkbox" data-setting="rowClickOpen"> Row click opens offer</label>
-        <label class="row"><input type="checkbox" data-setting="openInBackground"> Open in background tab</label>
-        <label class="row"><input type="checkbox" data-setting="enableMiddleClick"> Middle click opens offer</label>
-        <label class="row"><input type="checkbox" data-setting="keyboardNav"> Keyboard navigation</label>
-        <label class="row"><input type="checkbox" data-setting="rememberScroll"> Remember scroll position</label>
+        <h2 data-i18n="sectionBehavior">Behavior</h2>
+        <label class="row row--check">
+          <input type="checkbox" data-setting="rowClickOpen">
+          <div class="option-text">
+            <span data-i18n="labelRowClickOpen" data-i18n-title="descRowClickOpen">Row click opens offer</span>
+            <small class="option-help" data-i18n="descRowClickOpen">Open the offer when clicking a table row.</small>
+          </div>
+        </label>
+        <label class="row row--check">
+          <input type="checkbox" data-setting="openInBackground">
+          <div class="option-text">
+            <span data-i18n="labelOpenInBackground" data-i18n-title="descOpenInBackground">Open in background tab</span>
+            <small class="option-help" data-i18n="descOpenInBackground">Open offers in a background tab without switching.</small>
+          </div>
+        </label>
+        <label class="row row--check">
+          <input type="checkbox" data-setting="enableMiddleClick">
+          <div class="option-text">
+            <span data-i18n="labelEnableMiddleClick" data-i18n-title="descEnableMiddleClick">Middle click opens offer</span>
+            <small class="option-help" data-i18n="descEnableMiddleClick">Use the middle mouse button to open offers.</small>
+          </div>
+        </label>
+        <label class="row row--check">
+          <input type="checkbox" data-setting="keyboardNav">
+          <div class="option-text">
+            <span data-i18n="labelKeyboardNav" data-i18n-title="descKeyboardNav">Keyboard navigation</span>
+            <small class="option-help" data-i18n="descKeyboardNav">Enable arrow key navigation and Enter to open.</small>
+          </div>
+        </label>
+        <label class="row row--check">
+          <input type="checkbox" data-setting="rememberScroll">
+          <div class="option-text">
+            <span data-i18n="labelRememberScroll" data-i18n-title="descRememberScroll">Remember scroll position</span>
+            <small class="option-help" data-i18n="descRememberScroll">Restore scroll position when returning to the list.</small>
+          </div>
+        </label>
       </section>
 
       <section class="card">
-        <h2>UI</h2>
-        <label class="row"><input type="checkbox" data-setting="highlightRows"> Highlight rows on hover</label>
-        <label class="row"><input type="checkbox" data-setting="showTooltips"> Title tooltips</label>
-        <label class="row"><input type="checkbox" data-setting="showCopyButtons"> Copy buttons</label>
-        <label class="row"><input type="checkbox" data-setting="showCopyToast"> Copy toast</label>
-        <label class="row"><input type="checkbox" data-setting="stickyHeader"> Sticky header</label>
-        <label class="row"><input type="checkbox" data-setting="showVisited"> Mark opened rows</label>
-        <label class="row"><input type="checkbox" data-setting="inlineExpand"> Inline expand</label>
-        <label class="row"><input type="checkbox" data-setting="showBadges"> Show status badges</label>
-        <label class="row"><input type="checkbox" data-setting="showMiniToolbar"> Sticky toolbar</label>
-        <label class="row"><input type="checkbox" data-setting="quickJump"> Quick jump search</label>
-        <label class="row"><input type="checkbox" data-setting="multiSelect"> Multi-select</label>
+        <h2 data-i18n="sectionUi">UI</h2>
+        <label class="row row--check">
+          <input type="checkbox" data-setting="highlightRows">
+          <div class="option-text">
+            <span data-i18n="labelHighlightRows" data-i18n-title="descHighlightRows">Highlight rows on hover</span>
+            <small class="option-help" data-i18n="descHighlightRows">Add a hover highlight to table rows.</small>
+          </div>
+        </label>
+        <label class="row row--check">
+          <input type="checkbox" data-setting="showTooltips">
+          <div class="option-text">
+            <span data-i18n="labelShowTooltips" data-i18n-title="descShowTooltips">Title tooltips</span>
+            <small class="option-help" data-i18n="descShowTooltips">Show tooltips for long offer titles.</small>
+          </div>
+        </label>
+        <label class="row row--check">
+          <input type="checkbox" data-setting="showCopyButtons">
+          <div class="option-text">
+            <span data-i18n="labelShowCopyButtons" data-i18n-title="descShowCopyButtons">Copy buttons</span>
+            <small class="option-help" data-i18n="descShowCopyButtons">Show buttons to copy ID and link.</small>
+          </div>
+        </label>
+        <label class="row row--check">
+          <input type="checkbox" data-setting="showCopyToast">
+          <div class="option-text">
+            <span data-i18n="labelShowCopyToast" data-i18n-title="descShowCopyToast">Copy toast</span>
+            <small class="option-help" data-i18n="descShowCopyToast">Show a toast after copying.</small>
+          </div>
+        </label>
+        <label class="row row--check">
+          <input type="checkbox" data-setting="stickyHeader">
+          <div class="option-text">
+            <span data-i18n="labelStickyHeader" data-i18n-title="descStickyHeader">Sticky header</span>
+            <small class="option-help" data-i18n="descStickyHeader">Keep the table header visible while scrolling.</small>
+          </div>
+        </label>
+        <label class="row row--check">
+          <input type="checkbox" data-setting="showVisited">
+          <div class="option-text">
+            <span data-i18n="labelShowVisited" data-i18n-title="descShowVisited">Mark opened rows</span>
+            <small class="option-help" data-i18n="descShowVisited">Highlight rows you have already opened.</small>
+          </div>
+        </label>
+        <label class="row row--check">
+          <input type="checkbox" data-setting="inlineExpand">
+          <div class="option-text">
+            <span data-i18n="labelInlineExpand" data-i18n-title="descInlineExpand">Inline expand</span>
+            <small class="option-help" data-i18n="descInlineExpand">Show extra details inline under the row.</small>
+          </div>
+        </label>
+        <label class="row row--check">
+          <input type="checkbox" data-setting="showBadges">
+          <div class="option-text">
+            <span data-i18n="labelShowBadges" data-i18n-title="descShowBadges">Show status badges</span>
+            <small class="option-help" data-i18n="descShowBadges">Add badges like New or Closing soon.</small>
+          </div>
+        </label>
+        <label class="row row--check">
+          <input type="checkbox" data-setting="showMiniToolbar">
+          <div class="option-text">
+            <span data-i18n="labelShowMiniToolbar" data-i18n-title="descShowMiniToolbar">Sticky toolbar</span>
+            <small class="option-help" data-i18n="descShowMiniToolbar">Show the floating toolbar at the bottom.</small>
+          </div>
+        </label>
+        <label class="row row--check">
+          <input type="checkbox" data-setting="quickJump">
+          <div class="option-text">
+            <span data-i18n="labelQuickJump" data-i18n-title="descQuickJump">Quick jump search</span>
+            <small class="option-help" data-i18n="descQuickJump">Search and jump to a row by ID or title.</small>
+          </div>
+        </label>
+        <label class="row row--check">
+          <input type="checkbox" data-setting="multiSelect">
+          <div class="option-text">
+            <span data-i18n="labelMultiSelect" data-i18n-title="descMultiSelect">Multi-select</span>
+            <small class="option-help" data-i18n="descMultiSelect">Select multiple rows for batch actions.</small>
+          </div>
+        </label>
       </section>
 
       <section class="card">
-        <h2>Filters</h2>
-        <label class="row"><input type="checkbox" data-setting="rememberFilters"> Remember filter values</label>
+        <h2 data-i18n="sectionFilters">Filters</h2>
+        <label class="row row--check">
+          <input type="checkbox" data-setting="rememberFilters">
+          <div class="option-text">
+            <span data-i18n="labelRememberFilters" data-i18n-title="descRememberFilters">Remember filter values</span>
+            <small class="option-help" data-i18n="descRememberFilters">Save filter values and restore them later.</small>
+          </div>
+        </label>
       </section>
     </main>
 

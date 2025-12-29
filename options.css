@@ -1,47 +1,119 @@
+:root {
+  color-scheme: light;
+  --bg: #f4f6f8;
+  --surface: #ffffff;
+  --surface-alt: #fbfbfc;
+  --text: #1c1e21;
+  --muted: #60646c;
+  --line: #e1e4e8;
+  --accent: #0d5f8a;
+  --shadow: 0 10px 25px rgba(14, 20, 26, 0.08);
+}
+
 body {
   font-family: Lato, sans-serif;
-  background: #f6f6f6;
-  color: #2b2b2b;
+  background: linear-gradient(180deg, #f6f7f9 0%, #eef2f5 100%);
+  color: var(--text);
   margin: 0;
-  padding: 24px;
+  padding: 32px 20px;
 }
 
 .container {
-  max-width: 760px;
+  max-width: 860px;
   margin: 0 auto;
 }
 
 h1 {
-  font-size: 24px;
-  margin-bottom: 16px;
+  font-size: 26px;
+  margin-bottom: 18px;
+  letter-spacing: -0.2px;
 }
 
 .card {
-  background: #fff;
-  border: 1px solid #dcdcdc;
-  border-radius: 6px;
-  padding: 16px;
-  margin-bottom: 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 18px 20px;
+  margin-bottom: 18px;
+  box-shadow: var(--shadow);
 }
 
 .card h2 {
   font-size: 18px;
-  margin-top: 0;
+  margin: 0 0 10px;
+  color: var(--accent);
 }
 
 .row {
   display: flex;
-  align-items: center;
-  gap: 12px;
-  margin: 8px 0;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 12px 0;
 }
 
-.row span {
+.row--check {
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.row--check input[type="checkbox"] {
+  margin-top: 3px;
+}
+
+.option-text {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.option-text span {
+  font-weight: 600;
+}
+
+.option-help {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.option-control {
+  min-width: 200px;
+  display: flex;
+  justify-content: flex-end;
 }
 
 input[type="number"],
 select {
-  padding: 6px 8px;
-  min-width: 180px;
+  padding: 8px 10px;
+  min-width: 200px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-alt);
+  color: var(--text);
+  font-size: 14px;
+}
+
+input[type="number"]:focus,
+select:focus {
+  outline: 2px solid rgba(13, 95, 138, 0.2);
+  border-color: var(--accent);
+}
+
+@media (max-width: 720px) {
+  .row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .option-control {
+    min-width: 0;
+    justify-content: flex-start;
+  }
+
+  input[type="number"],
+  select {
+    width: 100%;
+  }
 }

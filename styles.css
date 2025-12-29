@@ -133,6 +133,15 @@
   z-index: 1;
 }
 
+.ezam-compact-columns #tenderListTable table col:nth-child(8),
+.ezam-compact-columns #tenderListTable table col:nth-child(9),
+.ezam-compact-columns #tenderListTable table th:nth-child(8),
+.ezam-compact-columns #tenderListTable table th:nth-child(9),
+.ezam-compact-columns #tenderListTable table td:nth-child(8),
+.ezam-compact-columns #tenderListTable table td:nth-child(9) {
+  display: none;
+}
+
 .ezam-toast {
   position: fixed;
   right: 16px;
@@ -214,13 +223,28 @@
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  align-items: center;
+  align-items: flex-start;
   padding: 8px;
   background: var(--color-body, #fff);
   border: 1px solid var(--color-line, #c5c5c5);
   border-radius: 6px;
   box-shadow: 0 6px 14px rgba(0, 0, 0, 0.12);
   z-index: 9998;
+}
+
+.ezam-toolbar-content {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.ezam-toolbar--minimized .ezam-toolbar-content {
+  display: none;
+}
+
+.ezam-toolbar-toggle {
+  white-space: nowrap;
 }
 
 .ezam-toolbar-input {

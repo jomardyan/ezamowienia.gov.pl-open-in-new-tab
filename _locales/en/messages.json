@@ -1,0 +1,302 @@
+{
+  "appName": {
+    "message": "Ezamowienia - Open offer in new tab"
+  },
+  "appDescription": {
+    "message": "Adds real links to offers on ezamowienia.gov.pl so they can be opened in a new tab."
+  },
+  "actionTitle": {
+    "message": "Open options"
+  },
+  "optionsTitle": {
+    "message": "Ezamowienia Extension Options"
+  },
+  "optionsHeading": {
+    "message": "Ezamowienia Extension Options"
+  },
+  "sectionGeneral": {
+    "message": "General"
+  },
+  "sectionBehavior": {
+    "message": "Behavior"
+  },
+  "sectionUi": {
+    "message": "UI"
+  },
+  "sectionFilters": {
+    "message": "Filters"
+  },
+  "labelLanguage": {
+    "message": "Language"
+  },
+  "languageEnglish": {
+    "message": "English"
+  },
+  "languagePolish": {
+    "message": "Polski"
+  },
+  "labelLinkPlacement": {
+    "message": "Link placement"
+  },
+  "linkPlacementCell": {
+    "message": "Cell"
+  },
+  "linkPlacementColumn": {
+    "message": "Extra column"
+  },
+  "labelFreezeColumns": {
+    "message": "Freeze columns"
+  },
+  "freezeOff": {
+    "message": "Off"
+  },
+  "freezeFirst": {
+    "message": "First column"
+  },
+  "freezeFirstTwo": {
+    "message": "First two columns"
+  },
+  "labelClosingSoonDays": {
+    "message": "Closing soon days"
+  },
+  "labelRowClickOpen": {
+    "message": "Row click opens offer"
+  },
+  "labelOpenInBackground": {
+    "message": "Open in background tab"
+  },
+  "labelEnableMiddleClick": {
+    "message": "Middle click opens offer"
+  },
+  "labelKeyboardNav": {
+    "message": "Keyboard navigation"
+  },
+  "labelRememberScroll": {
+    "message": "Remember scroll position"
+  },
+  "labelHighlightRows": {
+    "message": "Highlight rows on hover"
+  },
+  "labelShowTooltips": {
+    "message": "Title tooltips"
+  },
+  "labelShowCopyButtons": {
+    "message": "Copy buttons"
+  },
+  "labelShowCopyToast": {
+    "message": "Copy toast"
+  },
+  "labelStickyHeader": {
+    "message": "Sticky header"
+  },
+  "labelShowVisited": {
+    "message": "Mark opened rows"
+  },
+  "labelInlineExpand": {
+    "message": "Inline expand"
+  },
+  "labelShowBadges": {
+    "message": "Show status badges"
+  },
+  "labelShowMiniToolbar": {
+    "message": "Sticky toolbar"
+  },
+  "labelQuickJump": {
+    "message": "Quick jump search"
+  },
+  "labelMultiSelect": {
+    "message": "Multi-select"
+  },
+  "labelRememberFilters": {
+    "message": "Remember filter values"
+  },
+  "copyId": {
+    "message": "Copy ID"
+  },
+  "idCopied": {
+    "message": "ID copied"
+  },
+  "actionOk": {
+    "message": "OK"
+  },
+  "actionFail": {
+    "message": "Fail"
+  },
+  "copyLink": {
+    "message": "Copy link"
+  },
+  "linkCopied": {
+    "message": "Link copied"
+  },
+  "toggleDetails": {
+    "message": "Toggle details"
+  },
+  "more": {
+    "message": "Details"
+  },
+  "less": {
+    "message": "Hide details"
+  },
+  "openLink": {
+    "message": "Open"
+  },
+  "linkPlacementColumnLabel": {
+    "message": "Link: Column"
+  },
+  "linkPlacementCellLabel": {
+    "message": "Link: Cell"
+  },
+  "toggleLinkPlacement": {
+    "message": "Toggle link placement"
+  },
+  "optionsButton": {
+    "message": "Options"
+  },
+  "toggleOptions": {
+    "message": "Toggle options"
+  },
+  "rowClickOn": {
+    "message": "Row click: On"
+  },
+  "rowClickOff": {
+    "message": "Row click: Off"
+  },
+  "toggleRowClick": {
+    "message": "Toggle row click open"
+  },
+  "backgroundTabOn": {
+    "message": "Background tab: On"
+  },
+  "backgroundTabOff": {
+    "message": "Background tab: Off"
+  },
+  "toggleBackgroundTab": {
+    "message": "Toggle background tab"
+  },
+  "closingSoon": {
+    "message": "Closing soon"
+  },
+  "newBadge": {
+    "message": "New"
+  },
+  "detailMode": {
+    "message": "Mode"
+  },
+  "detailBzpTed": {
+    "message": "BZP/TED"
+  },
+  "detailOrganization": {
+    "message": "Organization"
+  },
+  "detailCity": {
+    "message": "City"
+  },
+  "detailProvince": {
+    "message": "Province"
+  },
+  "detailSubmission": {
+    "message": "Submission"
+  },
+  "detailInitiation": {
+    "message": "Initiation"
+  },
+  "presetsPlaceholder": {
+    "message": "Presets"
+  },
+  "selectedCount": {
+    "message": "Selected: {count}"
+  },
+  "jumpPlaceholder": {
+    "message": "Jump to ID/title"
+  },
+  "prevPage": {
+    "message": "Prev page"
+  },
+  "nextPage": {
+    "message": "Next page"
+  },
+  "openSelected": {
+    "message": "Open selected"
+  },
+  "selectAll": {
+    "message": "Select all"
+  },
+  "clearSelection": {
+    "message": "Clear"
+  },
+  "savePreset": {
+    "message": "Save preset"
+  },
+  "presetNamePrompt": {
+    "message": "Preset name"
+  },
+  "toolbarMinimize": {
+    "message": "Hide toolbar"
+  },
+  "toolbarExpand": {
+    "message": "Show toolbar"
+  },
+  "descLanguage": {
+    "message": "Choose the UI language for the extension."
+  },
+  "descLinkPlacement": {
+    "message": "Choose where the open link appears in the table."
+  },
+  "descFreezeColumns": {
+    "message": "Keep the first columns visible while scrolling horizontally."
+  },
+  "descClosingSoonDays": {
+    "message": "Mark offers as closing soon within this many days."
+  },
+  "descRowClickOpen": {
+    "message": "Open the offer when clicking a table row."
+  },
+  "descOpenInBackground": {
+    "message": "Open offers in a background tab without switching."
+  },
+  "descEnableMiddleClick": {
+    "message": "Use the middle mouse button to open offers."
+  },
+  "descKeyboardNav": {
+    "message": "Enable arrow key navigation and Enter to open."
+  },
+  "descRememberScroll": {
+    "message": "Restore scroll position when returning to the list."
+  },
+  "descHighlightRows": {
+    "message": "Add a hover highlight to table rows."
+  },
+  "descShowTooltips": {
+    "message": "Show tooltips for long offer titles."
+  },
+  "descShowCopyButtons": {
+    "message": "Show buttons to copy ID and link."
+  },
+  "descShowCopyToast": {
+    "message": "Show a toast after copying."
+  },
+  "descStickyHeader": {
+    "message": "Keep the table header visible while scrolling."
+  },
+  "descShowVisited": {
+    "message": "Highlight rows you have already opened."
+  },
+  "descInlineExpand": {
+    "message": "Show extra details inline under the row."
+  },
+  "descShowBadges": {
+    "message": "Add badges like New or Closing soon."
+  },
+  "descShowMiniToolbar": {
+    "message": "Show the floating toolbar at the bottom."
+  },
+  "descQuickJump": {
+    "message": "Search and jump to a row by ID or title."
+  },
+  "descMultiSelect": {
+    "message": "Select multiple rows for batch actions."
+  },
+  "descRememberFilters": {
+    "message": "Save filter values and restore them later."
+  }
+}

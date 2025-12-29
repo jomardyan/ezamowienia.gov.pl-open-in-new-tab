@@ -1,0 +1,302 @@
+{
+  "appName": {
+    "message": "Ezamowienia - Otwieraj oferty w nowej karcie"
+  },
+  "appDescription": {
+    "message": "Dodaje prawdziwe linki do ofert na ezamowienia.gov.pl, aby można było je otwierać w nowej karcie."
+  },
+  "actionTitle": {
+    "message": "Otwórz opcje"
+  },
+  "optionsTitle": {
+    "message": "Opcje rozszerzenia Ezamowienia"
+  },
+  "optionsHeading": {
+    "message": "Opcje rozszerzenia Ezamowienia"
+  },
+  "sectionGeneral": {
+    "message": "Ogólne"
+  },
+  "sectionBehavior": {
+    "message": "Zachowanie"
+  },
+  "sectionUi": {
+    "message": "Interfejs"
+  },
+  "sectionFilters": {
+    "message": "Filtry"
+  },
+  "labelLanguage": {
+    "message": "Język"
+  },
+  "languageEnglish": {
+    "message": "Angielski"
+  },
+  "languagePolish": {
+    "message": "Polski"
+  },
+  "labelLinkPlacement": {
+    "message": "Umiejscowienie linku"
+  },
+  "linkPlacementCell": {
+    "message": "Komórka"
+  },
+  "linkPlacementColumn": {
+    "message": "Dodatkowa kolumna"
+  },
+  "labelFreezeColumns": {
+    "message": "Zamrożenie kolumn"
+  },
+  "freezeOff": {
+    "message": "Wyłączone"
+  },
+  "freezeFirst": {
+    "message": "Pierwsza kolumna"
+  },
+  "freezeFirstTwo": {
+    "message": "Pierwsze dwie kolumny"
+  },
+  "labelClosingSoonDays": {
+    "message": "Dni do terminu zakończenia"
+  },
+  "labelRowClickOpen": {
+    "message": "Kliknięcie wiersza otwiera ofertę"
+  },
+  "labelOpenInBackground": {
+    "message": "Otwieraj w tle"
+  },
+  "labelEnableMiddleClick": {
+    "message": "Środkowy klik otwiera ofertę"
+  },
+  "labelKeyboardNav": {
+    "message": "Nawigacja klawiaturą"
+  },
+  "labelRememberScroll": {
+    "message": "Zapamiętaj pozycję przewijania"
+  },
+  "labelHighlightRows": {
+    "message": "Podświetlaj wiersze po najechaniu"
+  },
+  "labelShowTooltips": {
+    "message": "Podpowiedzi tytułu"
+  },
+  "labelShowCopyButtons": {
+    "message": "Przyciski kopiowania"
+  },
+  "labelShowCopyToast": {
+    "message": "Powiadomienia kopiowania"
+  },
+  "labelStickyHeader": {
+    "message": "Przyklejony nagłówek"
+  },
+  "labelShowVisited": {
+    "message": "Oznacz otwarte wiersze"
+  },
+  "labelInlineExpand": {
+    "message": "Rozwijanie w wierszu"
+  },
+  "labelShowBadges": {
+    "message": "Pokaż znaczniki statusu"
+  },
+  "labelShowMiniToolbar": {
+    "message": "Przyklejony pasek narzędzi"
+  },
+  "labelQuickJump": {
+    "message": "Szybkie wyszukiwanie"
+  },
+  "labelMultiSelect": {
+    "message": "Wielokrotny wybór"
+  },
+  "labelRememberFilters": {
+    "message": "Zapamiętaj wartości filtrów"
+  },
+  "copyId": {
+    "message": "Kopiuj ID"
+  },
+  "idCopied": {
+    "message": "Skopiowano ID"
+  },
+  "actionOk": {
+    "message": "OK"
+  },
+  "actionFail": {
+    "message": "Błąd"
+  },
+  "copyLink": {
+    "message": "Kopiuj link"
+  },
+  "linkCopied": {
+    "message": "Skopiowano link"
+  },
+  "toggleDetails": {
+    "message": "Przełącz szczegóły"
+  },
+  "more": {
+    "message": "Szczegóły"
+  },
+  "less": {
+    "message": "Zwiń"
+  },
+  "openLink": {
+    "message": "Otwórz"
+  },
+  "linkPlacementColumnLabel": {
+    "message": "Link: Kolumna"
+  },
+  "linkPlacementCellLabel": {
+    "message": "Link: Komórka"
+  },
+  "toggleLinkPlacement": {
+    "message": "Przełącz umiejscowienie linku"
+  },
+  "optionsButton": {
+    "message": "Opcje"
+  },
+  "toggleOptions": {
+    "message": "Pokaż/ukryj opcje"
+  },
+  "rowClickOn": {
+    "message": "Kliknięcie wiersza: Wł."
+  },
+  "rowClickOff": {
+    "message": "Kliknięcie wiersza: Wył."
+  },
+  "toggleRowClick": {
+    "message": "Przełącz otwieranie po kliknięciu wiersza"
+  },
+  "backgroundTabOn": {
+    "message": "Karta w tle: Wł."
+  },
+  "backgroundTabOff": {
+    "message": "Karta w tle: Wył."
+  },
+  "toggleBackgroundTab": {
+    "message": "Przełącz otwieranie w tle"
+  },
+  "closingSoon": {
+    "message": "Bliski termin"
+  },
+  "newBadge": {
+    "message": "Nowe"
+  },
+  "detailMode": {
+    "message": "Tryb"
+  },
+  "detailBzpTed": {
+    "message": "BZP/TED"
+  },
+  "detailOrganization": {
+    "message": "Organizacja"
+  },
+  "detailCity": {
+    "message": "Miasto"
+  },
+  "detailProvince": {
+    "message": "Województwo"
+  },
+  "detailSubmission": {
+    "message": "Termin składania"
+  },
+  "detailInitiation": {
+    "message": "Data wszczęcia"
+  },
+  "presetsPlaceholder": {
+    "message": "Zestawy"
+  },
+  "selectedCount": {
+    "message": "Wybrane: {count}"
+  },
+  "jumpPlaceholder": {
+    "message": "Skocz do ID/tytułu"
+  },
+  "prevPage": {
+    "message": "Poprzednia"
+  },
+  "nextPage": {
+    "message": "Następna"
+  },
+  "openSelected": {
+    "message": "Otwórz wybrane"
+  },
+  "selectAll": {
+    "message": "Zaznacz wszystko"
+  },
+  "clearSelection": {
+    "message": "Wyczyść"
+  },
+  "savePreset": {
+    "message": "Zapisz zestaw"
+  },
+  "presetNamePrompt": {
+    "message": "Nazwa zestawu"
+  },
+  "toolbarMinimize": {
+    "message": "Ukryj pasek"
+  },
+  "toolbarExpand": {
+    "message": "Pokaż pasek"
+  },
+  "descLanguage": {
+    "message": "Wybierz język interfejsu rozszerzenia."
+  },
+  "descLinkPlacement": {
+    "message": "Wybierz, gdzie pojawia się link otwierający ofertę."
+  },
+  "descFreezeColumns": {
+    "message": "Zachowaj widoczność pierwszych kolumn podczas przewijania."
+  },
+  "descClosingSoonDays": {
+    "message": "Oznacz oferty z terminem zamknięcia w ciągu tylu dni."
+  },
+  "descRowClickOpen": {
+    "message": "Otwieraj ofertę po kliknięciu wiersza tabeli."
+  },
+  "descOpenInBackground": {
+    "message": "Otwieraj oferty w tle bez przełączania karty."
+  },
+  "descEnableMiddleClick": {
+    "message": "Użyj środkowego przycisku myszy do otwierania ofert."
+  },
+  "descKeyboardNav": {
+    "message": "Włącz nawigację strzałkami i Enter do otwierania."
+  },
+  "descRememberScroll": {
+    "message": "Przywracaj pozycję przewijania po powrocie do listy."
+  },
+  "descHighlightRows": {
+    "message": "Dodaj podświetlenie wierszy po najechaniu."
+  },
+  "descShowTooltips": {
+    "message": "Pokazuj podpowiedzi dla długich tytułów ofert."
+  },
+  "descShowCopyButtons": {
+    "message": "Pokazuj przyciski kopiowania ID i linku."
+  },
+  "descShowCopyToast": {
+    "message": "Pokazuj powiadomienie po skopiowaniu."
+  },
+  "descStickyHeader": {
+    "message": "Utrzymuj nagłówek tabeli widoczny podczas przewijania."
+  },
+  "descShowVisited": {
+    "message": "Wyróżniaj wiersze, które już otwierałeś."
+  },
+  "descInlineExpand": {
+    "message": "Pokazuj dodatkowe szczegóły pod wierszem."
+  },
+  "descShowBadges": {
+    "message": "Dodawaj znaczniki, np. Nowe lub Bliski termin."
+  },
+  "descShowMiniToolbar": {
+    "message": "Pokazuj pływający pasek narzędzi na dole."
+  },
+  "descQuickJump": {
+    "message": "Szukaj i przechodź do wiersza po ID lub tytule."
+  },
+  "descMultiSelect": {
+    "message": "Zaznaczaj wiele wierszy do działań zbiorczych."
+  },
+  "descRememberFilters": {
+    "message": "Zapisuj wartości filtrów i przywracaj je później."
+  }
+}
