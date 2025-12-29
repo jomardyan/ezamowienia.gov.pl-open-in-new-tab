@@ -129,9 +129,17 @@
 
   function rebuildUiForLanguage() {
     document.querySelectorAll('.ezam-expand-row').forEach((row) => row.remove());
-    refreshRows();
+    document.querySelectorAll('.ezam-actions').forEach((node) => node.remove());
+    document.querySelectorAll('.ezam-select').forEach((node) => node.remove());
+    document.querySelectorAll('.ezam-expand-toggle').forEach((node) => node.remove());
 
     const table = document.querySelector('#tenderListTable table');
+    if (table && settings.linkPlacement === 'column') {
+      removeExtraColumn(table);
+    }
+
+    refreshRows();
+
     const headerRow = table ? table.querySelector('thead tr') : null;
     if (headerRow) {
       headerRow.querySelectorAll('.ezam-controls').forEach((node) => node.remove());
