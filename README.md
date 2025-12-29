@@ -1,4 +1,4 @@
-# ezamowienia.gov.pl - Open offer in new tab (Non-official)
+# ezamowienia.gov.pl — Szybkie otwieranie stron ofert (Non-official)
 
 Non-official Chrome/Edge extension that adds real links to offers on
 ezamowienia.gov.pl so they can be opened in a new tab.
