@@ -1,5 +1,74 @@
 .ezam-open-link {
   margin-left: 6px;
-  color: #0a66c2;
+  color: var(--color-primary, #0089c0);
   text-decoration: underline;
+}
+
+.ezam-open-link::after {
+  content: '>>';
+  margin-left: 4px;
+  font-size: 10px;
+  opacity: 0;
+  transition: opacity 150ms ease;
+}
+
+.ezam-highlight .ezam-link-row:hover {
+  background-color: var(--color-blue-light, #eaf9ff);
+}
+
+.ezam-highlight .ezam-link-row:hover .ezam-open-link::after {
+  opacity: 0.7;
+}
+
+.ezam-opened {
+  background-color: var(--color-muted-green-light, #f0fcf3);
+}
+
+.ezam-opened td {
+  opacity: 0.9;
+}
+
+.ezam-actions {
+  margin-left: 8px;
+  display: inline-flex;
+  gap: 4px;
+}
+
+.ezam-action-btn {
+  font-size: 11px;
+  line-height: 1;
+  padding: 2px 6px;
+  border: 1px solid var(--color-line, #c5c5c5);
+  background: var(--color-light, #f8f8f8);
+  color: var(--color-global, #4a4a4a);
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.ezam-action-btn:hover {
+  border-color: var(--color-primary, #0089c0);
+  color: var(--color-primary, #0089c0);
+}
+
+.ezam-toggle-btn {
+  font-size: 11px;
+  line-height: 1;
+  padding: 3px 6px;
+  border: 1px solid var(--color-line, #c5c5c5);
+  background: var(--color-light, #f8f8f8);
+  color: var(--color-global, #4a4a4a);
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.ezam-toggle-btn:hover {
+  border-color: var(--color-primary, #0089c0);
+  color: var(--color-primary, #0089c0);
+}
+
+.ezam-sticky thead th {
+  position: sticky;
+  top: 0;
+  background: var(--color-body, #fff);
+  z-index: 2;
 }
