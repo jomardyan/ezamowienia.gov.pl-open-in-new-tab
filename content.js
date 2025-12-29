@@ -4,6 +4,11 @@
   const SETTINGS_KEY = 'ezamSettings';
   const FILTERS_KEY = 'ezamFilters';
   const OPENED_KEY = 'ezamOpenedIds';
+  const LIST_PATH_RE = /^\/mp-client\/tenders\/?$/;
+
+  if (!LIST_PATH_RE.test(window.location.pathname)) {
+    return;
+  }
 
   const DEFAULTS = {
     linkPlacement: 'cell',
@@ -11,6 +16,9 @@
     showTooltips: true,
     showCopyButtons: true,
     enableMiddleClick: true,
+    rowClickOpen: true,
+    openInBackground: false,
+    showCopyToast: true,
     rememberFilters: true,
     stickyHeader: true,
     showVisited: true
@@ -78,6 +86,59 @@
     if (opened) opened.opener = null;
   }
 
+  function openWithBackground(url) {
+    if (chrome.runtime && chrome.runtime.sendMessage) {
+      chrome.runtime.sendMessage({ type: 'openTab', url, active: false });
+      return true;
+    }
+    return false;
+  }
+
+  function openOffer(url) {
+    if (settings.openInBackground) {
+      if (openWithBackground(url)) return;
+    }
+    openInNewTab(url);
+  }
+
+  function ensureToastContainer() {
+    let toast = document.querySelector('.ezam-toast');
+    if (toast) return toast;
+    toast = document.createElement('div');
+    toast.className = 'ezam-toast';
+    document.body.appendChild(toast);
+    return toast;
+  }
+
+  function showToast(message) {
+    if (!settings.showCopyToast) return;
+    const toast = ensureToastContainer();
+    toast.textContent = message;
+    toast.classList.add('ezam-toast--show');
+    clearTimeout(toast._ezamTimer);
+    toast._ezamTimer = setTimeout(() => {
+      toast.classList.remove('ezam-toast--show');
+    }, 1600);
+  }
+
+  function showActionFeedback(target, message) {
+    if (!target) return;
+    const original = target.dataset.ezamLabel || target.textContent;
+    target.dataset.ezamLabel = original;
+    target.textContent = message;
+    setTimeout(() => {
+      if (target.dataset.ezamIcon) {
+        target.textContent = '';
+        const icon = document.createElement('i');
+        icon.className = 'material-icons ezam-icon';
+        icon.textContent = target.dataset.ezamIcon;
+        target.appendChild(icon);
+      } else {
+        target.textContent = target.dataset.ezamLabel || original;
+      }
+    }, 1000);
+  }
+
   function markOpened(id, row) {
     if (!settings.showVisited) return;
     openedIds.add(id);
@@ -99,6 +160,10 @@
       // Stop row-level handlers from hijacking the click.
       anchor.addEventListener('click', (event) => {
         event.stopPropagation();
+        if (settings.openInBackground && event.button === 0 && !event.metaKey && !event.ctrlKey) {
+          event.preventDefault();
+          openOffer(url);
+        }
         markOpened(id, row);
       });
       anchor.addEventListener('mousedown', (event) => event.stopPropagation(), true);
@@ -145,22 +210,42 @@
 
     const copyIdBtn = document.createElement('button');
     copyIdBtn.type = 'button';
-    copyIdBtn.className = 'ezam-action-btn';
-    copyIdBtn.textContent = 'ID';
+    copyIdBtn.className = 'ezam-action-btn btn btn-outline-secondary btn-sm';
     copyIdBtn.title = 'Copy ID';
+    copyIdBtn.setAttribute('aria-label', 'Copy ID');
+    copyIdBtn.dataset.ezamIcon = 'content_copy';
+    const copyIdIcon = document.createElement('i');
+    copyIdIcon.className = 'material-icons ezam-icon';
+    copyIdIcon.textContent = 'content_copy';
+    copyIdBtn.appendChild(copyIdIcon);
     copyIdBtn.addEventListener('click', (event) => {
       event.stopPropagation();
-      copyToClipboard(id).catch(() => {});
+      copyToClipboard(id)
+        .then(() => {
+          showToast('ID copied');
+          showActionFeedback(copyIdBtn, 'OK');
+        })
+        .catch(() => showActionFeedback(copyIdBtn, 'Fail'));
     });
 
     const copyLinkBtn = document.createElement('button');
     copyLinkBtn.type = 'button';
-    copyLinkBtn.className = 'ezam-action-btn';
-    copyLinkBtn.textContent = 'Link';
+    copyLinkBtn.className = 'ezam-action-btn btn btn-outline-secondary btn-sm';
     copyLinkBtn.title = 'Copy link';
+    copyLinkBtn.setAttribute('aria-label', 'Copy link');
+    copyLinkBtn.dataset.ezamIcon = 'link';
+    const copyLinkIcon = document.createElement('i');
+    copyLinkIcon.className = 'material-icons ezam-icon';
+    copyLinkIcon.textContent = 'link';
+    copyLinkBtn.appendChild(copyLinkIcon);
     copyLinkBtn.addEventListener('click', (event) => {
       event.stopPropagation();
-      copyToClipboard(url).catch(() => {});
+      copyToClipboard(url)
+        .then(() => {
+          showToast('Link copied');
+          showActionFeedback(copyLinkBtn, 'OK');
+        })
+        .catch(() => showActionFeedback(copyLinkBtn, 'Fail'));
     });
 
     container.appendChild(copyIdBtn);
@@ -194,11 +279,11 @@
     table.querySelectorAll('td.ezam-extra-cell').forEach((cell) => cell.remove());
   }
 
-  function ensurePlacementToggle(table) {
+  function ensureHeaderControls(table) {
     if (!table) return;
     const headerRow = table.querySelector('thead tr');
-    if (!headerRow || headerRow.dataset.ezamToggleReady) return;
-    headerRow.dataset.ezamToggleReady = '1';
+    if (!headerRow || headerRow.dataset.ezamControlsReady) return;
+    headerRow.dataset.ezamControlsReady = '1';
 
     let toggleCell = headerRow.querySelector('th:last-child');
     if (!toggleCell) {
@@ -206,9 +291,12 @@
       headerRow.appendChild(toggleCell);
     }
 
+    const controls = document.createElement('div');
+    controls.className = 'ezam-controls';
+
     const toggleBtn = document.createElement('button');
     toggleBtn.type = 'button';
-    toggleBtn.className = 'ezam-toggle-btn';
+    toggleBtn.className = 'ezam-toggle-btn btn btn-outline-secondary btn-sm';
 
     const updateLabel = () => {
       toggleBtn.textContent = settings.linkPlacement === 'column' ? 'Link: Column' : 'Link: Cell';
@@ -224,12 +312,91 @@
     });
 
     updateLabel();
-    toggleCell.appendChild(toggleBtn);
+    controls.appendChild(toggleBtn);
+
+    const menuWrapper = document.createElement('div');
+    menuWrapper.className = 'ezam-menu-wrapper';
+
+    const menuBtn = document.createElement('button');
+    menuBtn.type = 'button';
+    menuBtn.className = 'ezam-toggle-btn btn btn-outline-secondary btn-sm';
+    menuBtn.textContent = 'Options';
+    menuBtn.title = 'Toggle options';
+
+    const menu = document.createElement('div');
+    menu.className = 'ezam-menu';
+
+    const rowClickBtn = document.createElement('button');
+    rowClickBtn.type = 'button';
+    rowClickBtn.className = 'ezam-menu-item btn btn-outline-secondary btn-sm';
+
+    const backgroundBtn = document.createElement('button');
+    backgroundBtn.type = 'button';
+    backgroundBtn.className = 'ezam-menu-item btn btn-outline-secondary btn-sm';
+
+    const updateMenuLabels = () => {
+      rowClickBtn.textContent = settings.rowClickOpen ? 'Row click: On' : 'Row click: Off';
+      rowClickBtn.title = 'Toggle row click open';
+      backgroundBtn.textContent = settings.openInBackground
+        ? 'Background tab: On'
+        : 'Background tab: Off';
+      backgroundBtn.title = 'Toggle background tab';
+    };
+
+    rowClickBtn.addEventListener('click', (event) => {
+      event.stopPropagation();
+      saveSettings({ rowClickOpen: !settings.rowClickOpen });
+      updateMenuLabels();
+    });
+
+    backgroundBtn.addEventListener('click', (event) => {
+      event.stopPropagation();
+      saveSettings({ openInBackground: !settings.openInBackground });
+      updateMenuLabels();
+    });
+
+    menuBtn.addEventListener('click', (event) => {
+      event.stopPropagation();
+      menu.classList.toggle('ezam-menu--open');
+    });
+
+    document.addEventListener('click', () => {
+      menu.classList.remove('ezam-menu--open');
+    });
+
+    updateMenuLabels();
+    menu.appendChild(rowClickBtn);
+    menu.appendChild(backgroundBtn);
+    menuWrapper.appendChild(menuBtn);
+    menuWrapper.appendChild(menu);
+    controls.appendChild(menuWrapper);
+    toggleCell.appendChild(controls);
   }
 
   function bindRowInteractions(row, id, url) {
     if (row.dataset.ezamBound) return;
     row.dataset.ezamBound = '1';
+
+    row.addEventListener(
+      'click',
+      (event) => {
+        if (!settings.rowClickOpen) return;
+        if (event.button !== 0) return;
+        const target = event.target;
+        if (
+          target.closest(
+            'a, button, input, textarea, select, label, .ezam-actions'
+          )
+        ) {
+          return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+        openOffer(url);
+        markOpened(id, row);
+      },
+      true
+    );
 
     row.addEventListener(
       'auxclick',
@@ -239,7 +406,7 @@
         if (event.target.closest('a, button')) return;
         event.preventDefault();
         event.stopPropagation();
-        openInNewTab(url);
+        openOffer(url);
         markOpened(id, row);
       },
       true
@@ -404,7 +571,7 @@
       }
 
       setupFilterPersistence();
-      ensurePlacementToggle(document.querySelector('#tenderListTable table'));
+      ensureHeaderControls(document.querySelector('#tenderListTable table'));
       applyStickyHeader();
     }).observe(document.body, { childList: true, subtree: true });
   }
@@ -414,7 +581,7 @@
     scanExisting();
     applyStickyHeader();
     setupFilterPersistence();
-    ensurePlacementToggle(document.querySelector('#tenderListTable table'));
+    ensureHeaderControls(document.querySelector('#tenderListTable table'));
     observeChanges();
   });
 })();

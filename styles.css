@@ -35,35 +35,74 @@
 }
 
 .ezam-action-btn {
-  font-size: 11px;
-  line-height: 1;
-  padding: 2px 6px;
-  border: 1px solid var(--color-line, #c5c5c5);
-  background: var(--color-light, #f8f8f8);
-  color: var(--color-global, #4a4a4a);
-  border-radius: 3px;
-  cursor: pointer;
+  padding: 2px 8px;
 }
 
-.ezam-action-btn:hover {
-  border-color: var(--color-primary, #0089c0);
-  color: var(--color-primary, #0089c0);
+.ezam-icon {
+  font-size: 14px;
+  line-height: 1;
+  vertical-align: middle;
+}
+
+.ezam-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ezam-menu-wrapper {
+  position: relative;
+  display: inline-flex;
+}
+
+.ezam-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  display: none;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px;
+  background: var(--color-body, #fff);
+  border: 1px solid var(--color-line, #c5c5c5);
+  border-radius: 4px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+  z-index: 5;
+  min-width: 160px;
+}
+
+.ezam-menu--open {
+  display: flex;
+}
+
+.ezam-menu-item {
+  width: 100%;
+  text-align: left;
 }
 
 .ezam-toggle-btn {
-  font-size: 11px;
-  line-height: 1;
-  padding: 3px 6px;
-  border: 1px solid var(--color-line, #c5c5c5);
-  background: var(--color-light, #f8f8f8);
-  color: var(--color-global, #4a4a4a);
-  border-radius: 3px;
-  cursor: pointer;
+  padding: 2px 8px;
+  white-space: nowrap;
 }
 
-.ezam-toggle-btn:hover {
-  border-color: var(--color-primary, #0089c0);
-  color: var(--color-primary, #0089c0);
+.ezam-toast {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  background: var(--color-secondary, #0d4259);
+  color: var(--color-inverted, #fff);
+  padding: 8px 12px;
+  border-radius: 4px;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 150ms ease, transform 150ms ease;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+.ezam-toast--show {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .ezam-sticky thead th {

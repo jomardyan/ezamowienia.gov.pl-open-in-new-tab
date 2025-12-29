@@ -3,8 +3,11 @@
   "name": "Ezamowienia - Open offer in new tab",
   "version": "1.0",
   "description": "Adds real links to offers on ezamowienia.gov.pl so they can be opened in a new tab.",
-  "permissions": ["storage"],
+  "permissions": ["storage", "tabs"],
   "host_permissions": ["https://ezamowienia.gov.pl/*"],
+  "background": {
+    "service_worker": "background.js"
+  },
   "content_scripts": [
     {
       "matches": ["https://ezamowienia.gov.pl/*"],
