@@ -133,6 +133,12 @@
   z-index: 1;
 }
 
+.ezam-sticky.ezam-freeze-1 thead th:nth-child(1),
+.ezam-sticky.ezam-freeze-2 thead th:nth-child(1),
+.ezam-sticky.ezam-freeze-2 thead th:nth-child(2) {
+  z-index: 3;
+}
+
 .ezam-compact-columns #tenderListTable table col:nth-child(8),
 .ezam-compact-columns #tenderListTable table col:nth-child(9),
 .ezam-compact-columns #tenderListTable table th:nth-child(8),

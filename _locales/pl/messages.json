@@ -1,18 +1,18 @@
 {
   "appName": {
-    "message": "Ezamowienia - Otwieraj oferty w nowej karcie"
+    "message": "ezamowienia.gov.pl - Otwieraj oferty w nowej karcie (Nieoficjalne)"
   },
   "appDescription": {
-    "message": "Dodaje prawdziwe linki do ofert na ezamowienia.gov.pl, aby można było je otwierać w nowej karcie."
+    "message": "Nieoficjalne rozszerzenie. Dodaje prawdziwe linki do ofert na ezamowienia.gov.pl, aby otwierały się w nowej karcie."
   },
   "actionTitle": {
     "message": "Otwórz opcje"
   },
   "optionsTitle": {
-    "message": "Opcje rozszerzenia Ezamowienia"
+    "message": "Opcje rozszerzenia ezamowienia.gov.pl (Nieoficjalne)"
   },
   "optionsHeading": {
-    "message": "Opcje rozszerzenia Ezamowienia"
+    "message": "Opcje rozszerzenia ezamowienia.gov.pl (Nieoficjalne)"
   },
   "sectionGeneral": {
     "message": "Ogólne"
