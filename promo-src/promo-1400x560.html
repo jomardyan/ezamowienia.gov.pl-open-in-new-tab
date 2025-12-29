@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="pl">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=1400, initial-scale=1">
+    <title>Promo 1400x560</title>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700&display=swap');
+
+      :root {
+        --bg1: #eef6ff;
+        --bg2: #f9fbff;
+        --accent: #0d5f8a;
+        --accent-2: #2f7aa1;
+        --text: #0f1f28;
+        --muted: #4c5c66;
+        --card: #ffffff;
+        --line: #dee7ee;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        width: 1400px;
+        height: 560px;
+        font-family: "Manrope", "Segoe UI", sans-serif;
+        background: linear-gradient(140deg, var(--bg1), var(--bg2));
+        color: var(--text);
+        overflow: hidden;
+      }
+
+      .wrap {
+        height: 100%;
+        padding: 70px 80px;
+        display: grid;
+        grid-template-columns: 1.05fr 0.95fr;
+        gap: 50px;
+        align-items: center;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 14px;
+        border-radius: 999px;
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--accent);
+        background: rgba(13, 95, 138, 0.12);
+        letter-spacing: 0.2px;
+        width: fit-content;
+      }
+
+      h1 {
+        margin: 18px 0 12px;
+        font-size: 46px;
+        line-height: 1.05;
+      }
+
+      h1 span {
+        color: var(--accent);
+      }
+
+      .lead {
+        margin: 0 0 26px;
+        font-size: 18px;
+        color: var(--muted);
+        max-width: 520px;
+      }
+
+      .bullets {
+        display: grid;
+        gap: 10px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .bullets li {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 16px;
+      }
+
+      .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--accent);
+      }
+
+      .panel {
+        background: var(--card);
+        border-radius: 20px;
+        border: 1px solid var(--line);
+        box-shadow: 0 30px 60px rgba(15, 31, 40, 0.16);
+        overflow: hidden;
+      }
+
+      .panel-header {
+        padding: 16px 20px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid var(--line);
+        background: #f7fafc;
+      }
+
+      .logo {
+        width: 56px;
+        height: 56px;
+        border-radius: 16px;
+        box-shadow: 0 12px 20px rgba(13, 95, 138, 0.2);
+      }
+
+      .panel-body {
+        padding: 20px 22px 26px;
+        display: grid;
+        gap: 12px;
+      }
+
+      .row {
+        display: grid;
+        grid-template-columns: 1fr 160px;
+        gap: 16px;
+        align-items: center;
+      }
+
+      .row .title {
+        height: 14px;
+        border-radius: 999px;
+        background: #e6edf4;
+      }
+
+      .row .action {
+        height: 36px;
+        border-radius: 10px;
+        background: linear-gradient(120deg, var(--accent), var(--accent-2));
+      }
+
+      .toolbar {
+        margin-top: 6px;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .chip {
+        height: 32px;
+        border-radius: 999px;
+        background: #eff3f8;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <section>
+        <div class="badge">Nieoficjalne rozszerzenie</div>
+        <h1>ezamowienia.gov.pl<br><span>Szybkie otwieranie stron ofert</span></h1>
+        <p class="lead">Dodaje prawdziwe linki na liście ofert i pozwala otwierać je w nowej lub w tle.</p>
+        <ul class="bullets">
+          <li><span class="dot"></span>Jedno kliknięcie do szczegółów</li>
+          <li><span class="dot"></span>Szybkie akcje i wielokrotny wybór</li>
+          <li><span class="dot"></span>Przejrzysty widok bez przewijania</li>
+        </ul>
+      </section>
+      <section class="panel">
+        <div class="panel-header">
+          <strong>Podgląd listy</strong>
+          <img class="logo" src="../icons/icon128.png" alt="Logo">
+        </div>
+        <div class="panel-body">
+          <div class="row">
+            <div class="title"></div>
+            <div class="action"></div>
+          </div>
+          <div class="row">
+            <div class="title"></div>
+            <div class="action"></div>
+          </div>
+          <div class="row">
+            <div class="title"></div>
+            <div class="action"></div>
+          </div>
+          <div class="toolbar">
+            <div class="chip"></div>
+            <div class="chip"></div>
+            <div class="chip"></div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </body>
+</html>

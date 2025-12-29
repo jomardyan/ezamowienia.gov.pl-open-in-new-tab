@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="pl">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=440, initial-scale=1">
+    <title>Promo 440x280</title>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700&display=swap');
+
+      :root {
+        --bg1: #eef6ff;
+        --bg2: #f7fbff;
+        --accent: #0d5f8a;
+        --text: #10212b;
+        --muted: #4f5d67;
+        --card: #ffffff;
+        --line: #dfe7ee;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        width: 440px;
+        height: 280px;
+        font-family: "Manrope", "Segoe UI", sans-serif;
+        background: linear-gradient(135deg, var(--bg1), var(--bg2));
+        color: var(--text);
+        overflow: hidden;
+      }
+
+      .wrap {
+        height: 100%;
+        padding: 22px 24px;
+        display: grid;
+        gap: 14px;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--accent);
+        background: rgba(13, 95, 138, 0.12);
+        letter-spacing: 0.2px;
+        width: fit-content;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 22px;
+        line-height: 1.15;
+      }
+
+      h1 span {
+        color: var(--accent);
+      }
+
+      .lead {
+        margin: 0;
+        font-size: 13px;
+        color: var(--muted);
+      }
+
+      .card {
+        margin-top: 6px;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 12px;
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 12px;
+        align-items: center;
+        box-shadow: 0 16px 30px rgba(16, 33, 43, 0.12);
+      }
+
+      .logo {
+        width: 56px;
+        height: 56px;
+        border-radius: 14px;
+        box-shadow: 0 10px 18px rgba(13, 95, 138, 0.2);
+      }
+
+      .card-lines {
+        display: grid;
+        gap: 8px;
+      }
+
+      .line {
+        height: 10px;
+        border-radius: 999px;
+        background: #e7eef4;
+      }
+
+      .line.short {
+        width: 70%;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="badge">Nieoficjalne rozszerzenie</div>
+      <h1>ezamowienia.gov.pl<br><span>Szybkie otwieranie ofert</span></h1>
+      <p class="lead">Otwieraj strony ofert w nowej karcie bez zbędnych kliknięć.</p>
+      <div class="card">
+        <img class="logo" src="../icons/icon128.png" alt="Logo">
+        <div class="card-lines">
+          <div class="line"></div>
+          <div class="line short"></div>
+          <div class="line"></div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
