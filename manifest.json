@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "Ezamowienia - Open offer in new tab",
+  "version": "1.0",
+  "description": "Adds real links to offers on ezamowienia.gov.pl so they can be opened in a new tab.",
+  "permissions": [],
+  "host_permissions": ["https://ezamowienia.gov.pl/*"],
+  "content_scripts": [
+    {
+      "matches": ["https://ezamowienia.gov.pl/*"],
+      "js": ["content.js"],
+      "css": ["styles.css"],
+      "run_at": "document_idle"
+    }
+  ]
+}
