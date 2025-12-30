@@ -34,18 +34,30 @@ function normalizeLanguage(language) {
   return language && language.toLowerCase().startsWith('pl') ? 'pl' : 'en';
 }
 
+function normalizeLinkPlacement(value) {
+  if (value === 'column') return 'details';
+  if (value === 'details') return 'details';
+  return 'cell';
+}
+
 function loadSettings() {
   return new Promise((resolve) => {
     chrome.storage.sync.get(SETTINGS_KEY, (data) => {
       const stored = data[SETTINGS_KEY] || {};
       const resolvedLanguage = normalizeLanguage(stored.language || detectLanguage());
-      resolve({ ...DEFAULTS, ...stored, language: resolvedLanguage });
+      const settings = { ...DEFAULTS, ...stored, language: resolvedLanguage };
+      settings.linkPlacement = normalizeLinkPlacement(settings.linkPlacement);
+      resolve(settings);
     });
   });
 }
 
 function saveSettings(next) {
-  chrome.storage.sync.set({ [SETTINGS_KEY]: next });
+  const normalized = { ...next };
+  if (Object.prototype.hasOwnProperty.call(normalized, 'linkPlacement')) {
+    normalized.linkPlacement = normalizeLinkPlacement(normalized.linkPlacement);
+  }
+  chrome.storage.sync.set({ [SETTINGS_KEY]: normalized });
 }
 
 let messages = {};

@@ -6,9 +6,11 @@
   const PRESETS_KEY = 'ezamFilterPresets';
   const OPENED_KEY = 'ezamOpenedIds';
   const SCROLL_KEY = 'ezamScrollState';
+  const NOTES_KEY = 'ezamOfferNotes';
   const LIST_PATH_RE = /^\/mp-client\/(tenders|search\/list)\/?$/;
   const LOCALES = ['en', 'pl'];
   const COMPACT_MAX_WIDTH = 1920;
+  const NOTE_MAX_LENGTH = 256;
 
   if (!LIST_PATH_RE.test(window.location.pathname)) {
     return;
@@ -40,6 +42,7 @@
   };
 
   let settings = { ...DEFAULTS };
+  let offerNotes = Object.create(null);
   const openedIds = new Set(loadOpenedIds());
   const selectedIds = new Set();
   let rowCursor = -1;
@@ -58,6 +61,12 @@
 
   function normalizeLanguage(language) {
     return language && language.toLowerCase().startsWith('pl') ? 'pl' : 'en';
+  }
+
+  function normalizeLinkPlacement(value) {
+    if (value === 'column') return 'details';
+    if (value === 'details') return 'details';
+    return 'cell';
   }
 
   function formatMessage(text, vars) {
@@ -111,6 +120,43 @@
     }
   }
 
+  function loadNotes() {
+    return new Promise((resolve) => {
+      if (!chrome.storage || !chrome.storage.local) {
+        offerNotes = Object.create(null);
+        resolve(offerNotes);
+        return;
+      }
+      chrome.storage.local.get(NOTES_KEY, (data) => {
+        const stored = data[NOTES_KEY];
+        offerNotes = Object.create(null);
+        if (stored && typeof stored === 'object' && !Array.isArray(stored)) {
+          Object.keys(stored).forEach((key) => {
+            offerNotes[key] = String(stored[key]);
+          });
+        }
+        resolve(offerNotes);
+      });
+    });
+  }
+
+  function saveNote(id, note) {
+    if (!id) return;
+    const next = String(note || '').slice(0, NOTE_MAX_LENGTH);
+    if (!next.trim()) {
+      delete offerNotes[id];
+    } else {
+      offerNotes[id] = next;
+    }
+    if (chrome.storage && chrome.storage.local) {
+      chrome.storage.local.set({ [NOTES_KEY]: { ...offerNotes } });
+    }
+  }
+
+  function getNote(id) {
+    return offerNotes[id] || '';
+  }
+
   function loadSettings() {
     return new Promise((resolve) => {
       if (!chrome.storage || !chrome.storage.sync) {
@@ -122,6 +168,7 @@
         const stored = data[SETTINGS_KEY] || {};
         const resolvedLanguage = normalizeLanguage(stored.language || detectLanguage());
         settings = { ...DEFAULTS, ...stored, language: resolvedLanguage };
+        settings.linkPlacement = normalizeLinkPlacement(settings.linkPlacement);
         resolve(settings);
       });
     });
@@ -132,9 +179,10 @@
     document.querySelectorAll('.ezam-actions').forEach((node) => node.remove());
     document.querySelectorAll('.ezam-select').forEach((node) => node.remove());
     document.querySelectorAll('.ezam-expand-toggle').forEach((node) => node.remove());
+    document.querySelectorAll('.ezam-open-link--generated').forEach((node) => node.remove());
 
     const table = document.querySelector('#tenderListTable table');
-    if (table && settings.linkPlacement === 'column') {
+    if (table) {
       removeExtraColumn(table);
     }
 
@@ -157,21 +205,29 @@
 
   function handleSettingsUpdate(next) {
     const prevLanguage = settings.language;
+    const prevLinkPlacement = settings.linkPlacement;
     settings = { ...settings, ...next };
     if (next && Object.prototype.hasOwnProperty.call(next, 'language')) {
       settings.language = normalizeLanguage(next.language);
     }
+    settings.linkPlacement = normalizeLinkPlacement(settings.linkPlacement);
 
     if (settings.language !== prevLanguage) {
       loadMessages(settings.language).then(() => {
         t = translate;
         rebuildUiForLanguage();
       });
+    } else if (settings.linkPlacement !== prevLinkPlacement) {
+      refreshRows();
     }
   }
 
   function saveSettings(next) {
-    settings = { ...settings, ...next };
+    const normalized = { ...next };
+    if (Object.prototype.hasOwnProperty.call(normalized, 'linkPlacement')) {
+      normalized.linkPlacement = normalizeLinkPlacement(normalized.linkPlacement);
+    }
+    settings = { ...settings, ...normalized };
     if (chrome.storage && chrome.storage.sync) {
       chrome.storage.sync.set({ [SETTINGS_KEY]: settings });
     }
@@ -186,7 +242,7 @@
   }
 
   function isInlineExpandEnabled() {
-    return settings.inlineExpand || compactColumns;
+    return settings.inlineExpand || compactColumns || settings.linkPlacement === 'details';
   }
 
   function applyCompactColumns() {
@@ -480,15 +536,15 @@
 
     const updateLabel = () => {
       toggleBtn.textContent =
-        settings.linkPlacement === 'column'
-          ? t('linkPlacementColumnLabel', 'Link: Column')
+        settings.linkPlacement === 'details'
+          ? t('linkPlacementColumnLabel', 'Link: Details')
           : t('linkPlacementCellLabel', 'Link: Cell');
       toggleBtn.title = t('toggleLinkPlacement', 'Toggle link placement');
     };
 
     toggleBtn.addEventListener('click', (event) => {
       event.stopPropagation();
-      const next = settings.linkPlacement === 'column' ? 'cell' : 'column';
+      const next = settings.linkPlacement === 'details' ? 'cell' : 'details';
       saveSettings({ linkPlacement: next });
       updateLabel();
       refreshRows();
@@ -675,9 +731,73 @@
     }
   }
 
-  function buildExpandRow(row, cells) {
+  function buildNoteSection(id) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'ezam-note';
+
+    const label = document.createElement('div');
+    label.className = 'ezam-note-label';
+    label.textContent = t('noteLabel', 'Note');
+
+    const textarea = document.createElement('textarea');
+    textarea.className = 'ezam-note-input';
+    textarea.maxLength = NOTE_MAX_LENGTH;
+    textarea.placeholder = t('notePlaceholder', 'Add a note (max {max} characters)', {
+      max: NOTE_MAX_LENGTH
+    });
+    textarea.setAttribute('aria-label', t('noteLabel', 'Note'));
+    textarea.value = getNote(id);
+
+    const count = document.createElement('div');
+    count.className = 'ezam-note-count';
+
+    const updateCount = () => {
+      count.textContent = t('noteCount', '{count}/{max}', {
+        count: textarea.value.length,
+        max: NOTE_MAX_LENGTH
+      });
+    };
+
+    const commit = () => {
+      const value = textarea.value.slice(0, NOTE_MAX_LENGTH);
+      if (value !== textarea.value) {
+        textarea.value = value;
+      }
+      updateCount();
+      saveNote(id, value);
+    };
+
+    textarea.addEventListener('input', () => {
+      if (textarea._ezamNoteTimer) clearTimeout(textarea._ezamNoteTimer);
+      textarea._ezamNoteTimer = setTimeout(commit, 200);
+    });
+    textarea.addEventListener('blur', () => {
+      if (textarea._ezamNoteTimer) {
+        clearTimeout(textarea._ezamNoteTimer);
+        textarea._ezamNoteTimer = null;
+      }
+      commit();
+    });
+
+    updateCount();
+    wrapper.appendChild(label);
+    wrapper.appendChild(textarea);
+    wrapper.appendChild(count);
+    return wrapper;
+  }
+
+  function buildExpandRow(row, cells, id) {
     const existing = row.nextElementSibling;
     if (existing && existing.classList.contains('ezam-expand-row')) {
+      const existingCell = existing.querySelector('.ezam-expand-cell');
+      if (existingCell) {
+        existingCell.colSpan = row.querySelectorAll('td').length || cells.length;
+        if (!existingCell.querySelector('.ezam-expand-actions')) {
+          const actions = document.createElement('div');
+          actions.className = 'ezam-expand-actions';
+          existingCell.insertBefore(actions, existingCell.firstChild);
+        }
+      }
       return existing;
     }
 
@@ -687,6 +807,9 @@
     const detailCell = document.createElement('td');
     detailCell.colSpan = row.querySelectorAll('td').length || cells.length;
     detailCell.className = 'ezam-expand-cell';
+
+    const actions = document.createElement('div');
+    actions.className = 'ezam-expand-actions';
 
     const items = [
       [t('detailMode', 'Mode'), cells[2]?.textContent.trim()],
@@ -715,24 +838,64 @@
       list.appendChild(item);
     });
 
+    detailCell.appendChild(actions);
     detailCell.appendChild(list);
+    detailCell.appendChild(buildNoteSection(id));
     detailsRow.appendChild(detailCell);
     row.insertAdjacentElement('afterend', detailsRow);
 
     return detailsRow;
   }
 
-  function getActionsCell(row, cells) {
-    if (settings.linkPlacement === 'column') {
-      let extraCell = row.querySelector('td.ezam-extra-cell');
-      if (!extraCell) {
-        extraCell = document.createElement('td');
-        extraCell.className = 'ezam-extra-cell';
-        row.appendChild(extraCell);
-      }
-      return extraCell;
+  function ensureExpandActions(detailsRow, row, id, url) {
+    if (!detailsRow) return;
+    const cell = detailsRow.querySelector('.ezam-expand-cell');
+    if (!cell) return;
+
+    let actions = cell.querySelector('.ezam-expand-actions');
+    if (!actions) {
+      actions = document.createElement('div');
+      actions.className = 'ezam-expand-actions';
+      cell.insertBefore(actions, cell.firstChild);
     }
 
+    let openLink = actions.querySelector('a.ezam-expand-open');
+    if (!openLink) {
+      openLink = document.createElement('a');
+      openLink.className = 'btn btn-outline-secondary btn-sm ezam-open-link ezam-expand-open';
+      actions.appendChild(openLink);
+    }
+    openLink.textContent = t('openLink', 'Open');
+    applyAnchor(openLink, url, id, row);
+
+    if (settings.multiSelect) {
+      if (!actions.querySelector('.ezam-select')) {
+        const select = buildSelectCheckbox(id);
+        select.classList.add('ezam-expand-select');
+        actions.appendChild(select);
+      }
+    } else {
+      actions.querySelectorAll('.ezam-select').forEach((node) => node.remove());
+    }
+
+    if (settings.showCopyButtons) {
+      if (!actions.querySelector('.ezam-actions')) {
+        const buttons = buildActionButtons(id, url);
+        buttons.classList.add('ezam-expand-action-buttons');
+        actions.appendChild(buttons);
+      }
+    } else {
+      actions.querySelectorAll('.ezam-actions').forEach((node) => node.remove());
+    }
+  }
+
+  function clearExpandActions(detailsRow) {
+    if (!detailsRow) return;
+    const actions = detailsRow.querySelector('.ezam-expand-actions');
+    if (actions) actions.textContent = '';
+  }
+
+  function getActionsCell(row, cells) {
     return row.querySelector('td:last-child') || cells[cells.length - 1];
   }
 
@@ -760,43 +923,59 @@
       applyAnchor(detailsAnchor, url, id, row);
     }
 
-    const table = row.closest('table');
-    if (settings.linkPlacement === 'column') {
-      ensureExtraColumn(table);
-    }
-
     const actionsCell = getActionsCell(row, cells);
+    const useDetailsPlacement = settings.linkPlacement === 'details';
+    const inlineEnabled = isInlineExpandEnabled();
+    const detailsRow = inlineEnabled ? buildExpandRow(row, cells, id) : null;
 
-    let openLink = actionsCell.querySelector('a.ezam-open-link');
-    if (!openLink && detailsAnchor && settings.linkPlacement !== 'column') {
-      openLink = detailsAnchor;
-    }
-    if (!openLink) {
-      openLink = document.createElement('a');
-      openLink.textContent = t('openLink', 'Open');
-      actionsCell.appendChild(openLink);
-    }
-    applyAnchor(openLink, url, id, row);
-
-    if (settings.multiSelect && !actionsCell.querySelector('.ezam-select')) {
-      actionsCell.appendChild(buildSelectCheckbox(id));
-    }
-
-    if (isInlineExpandEnabled() && !actionsCell.querySelector('.ezam-expand-toggle')) {
-      const detailsRow = buildExpandRow(row, cells);
+    if (inlineEnabled && actionsCell && !actionsCell.querySelector('.ezam-expand-toggle')) {
       const expandBtn = buildExpandButton(row, detailsRow);
       expandBtn.classList.add('ezam-expand-toggle');
       actionsCell.appendChild(expandBtn);
     }
 
-    if (settings.showCopyButtons && !actionsCell.querySelector('.ezam-actions')) {
-      actionsCell.appendChild(buildActionButtons(id, url));
+    if (useDetailsPlacement) {
+      if (detailsRow) {
+        ensureExpandActions(detailsRow, row, id, url);
+      }
+      if (actionsCell) {
+        actionsCell
+          .querySelectorAll('.ezam-actions, .ezam-select, .ezam-open-link--generated')
+          .forEach((node) => node.remove());
+      }
+    } else {
+      if (detailsRow) {
+        clearExpandActions(detailsRow);
+      }
+
+      let openLink = actionsCell ? actionsCell.querySelector('a.ezam-open-link') : null;
+      if (!openLink && detailsAnchor) {
+        openLink = detailsAnchor;
+      }
+      if (!openLink && actionsCell) {
+        openLink = document.createElement('a');
+        openLink.textContent = t('openLink', 'Open');
+        openLink.classList.add('ezam-open-link--generated');
+        actionsCell.appendChild(openLink);
+      }
+      if (openLink) {
+        applyAnchor(openLink, url, id, row);
+      }
+
+      if (settings.multiSelect && actionsCell && !actionsCell.querySelector('.ezam-select')) {
+        actionsCell.appendChild(buildSelectCheckbox(id));
+      }
+
+      if (settings.showCopyButtons && actionsCell && !actionsCell.querySelector('.ezam-actions')) {
+        actionsCell.appendChild(buildActionButtons(id, url));
+      }
     }
 
     bindRowInteractions(row, id, url);
   }
 
   function scanExisting() {
+    removeExtraColumn(document.querySelector('#tenderListTable table'));
     document.querySelectorAll(ROW_SELECTOR).forEach(addLinkToRow);
   }
 
@@ -822,11 +1001,7 @@
 
   function refreshRows() {
     const table = document.querySelector('#tenderListTable table');
-    if (settings.linkPlacement === 'column') {
-      ensureExtraColumn(table);
-    } else {
-      removeExtraColumn(table);
-    }
+    removeExtraColumn(table);
 
     document.querySelectorAll(ROW_SELECTOR).forEach((row) => {
       row.classList.remove('ezam-opened');
@@ -991,11 +1166,22 @@
     }
   }
 
+  function getRowSelectBox(row) {
+    if (!row) return null;
+    const direct = row.querySelector('.ezam-select-box');
+    if (direct) return direct;
+    const next = row.nextElementSibling;
+    if (next && next.classList.contains('ezam-expand-row')) {
+      return next.querySelector('.ezam-select-box');
+    }
+    return null;
+  }
+
   function selectAllRows() {
     document.querySelectorAll(ROW_SELECTOR).forEach((row) => {
       const id = row.dataset.ezamOfferId;
       if (!id) return;
-      const box = row.querySelector('.ezam-select-box');
+      const box = getRowSelectBox(row);
       if (box) box.checked = true;
       selectedIds.add(id);
     });
@@ -1237,6 +1423,7 @@
 
   loadSettings()
     .then(() => loadMessages(settings.language))
+    .then(() => loadNotes())
     .then(() => {
       t = translate;
 

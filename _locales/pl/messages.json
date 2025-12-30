@@ -42,7 +42,7 @@
     "message": "Komórka"
   },
   "linkPlacementColumn": {
-    "message": "Dodatkowa kolumna"
+    "message": "Szczegóły"
   },
   "labelFreezeColumns": {
     "message": "Zamrożenie kolumn"
@@ -141,7 +141,7 @@
     "message": "Otwórz"
   },
   "linkPlacementColumnLabel": {
-    "message": "Link: Kolumna"
+    "message": "Link: Szczegóły"
   },
   "linkPlacementCellLabel": {
     "message": "Link: Komórka"
@@ -199,6 +199,15 @@
   },
   "detailInitiation": {
     "message": "Data wszczęcia"
+  },
+  "noteLabel": {
+    "message": "Notatka"
+  },
+  "notePlaceholder": {
+    "message": "Dodaj notatkę (max {max} znaków)"
+  },
+  "noteCount": {
+    "message": "{count}/{max}"
   },
   "presetsPlaceholder": {
     "message": "Zestawy"

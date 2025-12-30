@@ -42,7 +42,7 @@
     "message": "Cell"
   },
   "linkPlacementColumn": {
-    "message": "Extra column"
+    "message": "Details panel"
   },
   "labelFreezeColumns": {
     "message": "Freeze columns"
@@ -141,7 +141,7 @@
     "message": "Open"
   },
   "linkPlacementColumnLabel": {
-    "message": "Link: Column"
+    "message": "Link: Details"
   },
   "linkPlacementCellLabel": {
     "message": "Link: Cell"
@@ -199,6 +199,15 @@
   },
   "detailInitiation": {
     "message": "Initiation"
+  },
+  "noteLabel": {
+    "message": "Note"
+  },
+  "notePlaceholder": {
+    "message": "Add a note (max {max} characters)"
+  },
+  "noteCount": {
+    "message": "{count}/{max}"
   },
   "presetsPlaceholder": {
     "message": "Presets"

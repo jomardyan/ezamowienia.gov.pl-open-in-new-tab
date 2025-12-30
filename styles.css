@@ -1,12 +1,16 @@
 .ezam-open-link {
-  margin-left: 6px;
+  margin-right: 6px;
   color: var(--color-primary, #0089c0);
   text-decoration: underline;
+  display: inline-flex;
+  align-items: center;
+  line-height: 1.2;
+  vertical-align: middle;
 }
 
 .ezam-open-link::after {
   content: '>>';
-  margin-left: 4px;
+  margin-left: 3px;
   font-size: 10px;
   opacity: 0;
   transition: opacity 150ms ease;
@@ -34,14 +38,22 @@
 }
 
 .ezam-actions {
-  margin-left: 8px;
+  margin-left: 6px;
   display: inline-flex;
-  gap: 4px;
+  gap: 6px;
   align-items: center;
+  vertical-align: middle;
 }
 
 .ezam-action-btn {
-  padding: 2px 8px;
+  padding: 4px 8px;
+  min-height: 28px;
+  min-width: 34px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
 }
 
 .ezam-icon {
@@ -54,11 +66,17 @@
   margin-left: 6px;
   display: inline-flex;
   align-items: center;
+  vertical-align: middle;
 }
 
 .ezam-select-box {
   width: 14px;
   height: 14px;
+  margin: 0;
+}
+
+.ezam-expand-toggle {
+  margin-left: 6px;
 }
 
 .ezam-toggle-btn {
@@ -201,6 +219,32 @@
   background: var(--color-light, #f8f8f8);
 }
 
+.ezam-expand-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.ezam-expand-actions:empty {
+  display: none;
+}
+
+.ezam-expand-actions .ezam-actions,
+.ezam-expand-actions .ezam-select {
+  margin-left: 0;
+}
+
+.ezam-expand-actions .ezam-open-link {
+  margin-left: 0;
+  text-decoration: none;
+}
+
+.ezam-expand-actions .ezam-open-link::after {
+  content: none;
+}
+
 .ezam-expand-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -220,6 +264,38 @@
 
 .ezam-expand-value {
   color: var(--color-global, #4a4a4a);
+}
+
+.ezam-note {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ezam-note-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-secondary, #0d4259);
+}
+
+.ezam-note-input {
+  min-height: 72px;
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--color-line, #c5c5c5);
+  border-radius: 4px;
+  background: var(--color-body, #fff);
+  color: var(--color-global, #4a4a4a);
+  font-size: 13px;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.ezam-note-count {
+  align-self: flex-end;
+  font-size: 11px;
+  color: var(--color-muted-dark, #7a7a7a);
 }
 
 .ezam-toolbar {
