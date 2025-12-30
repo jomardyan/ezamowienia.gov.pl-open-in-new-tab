@@ -4,8 +4,10 @@
   const TRUSTED_ORIGIN = BASE_URL.origin;
   const TRUSTED_PATH_PREFIX = BASE_URL.pathname;
   const OFFER_ID_RE = /ocds-[a-z0-9-]+/i;
+  const BZP_NOTICE_RE = /\b\d{4}\/BZP\s+\d{5,}\/\d{2}\b/i;
   const OFFER_ID_MAX_LENGTH = 200;
   const ROW_SELECTOR = 'tr.tr-link';
+  const BZP_NOTICE_BASE = 'https://ezamowienia.gov.pl/mo-client-board/bzp/notice-details/';
   const SETTINGS_KEY = 'ezamSettings';
   const FILTERS_KEY = 'ezamFilters';
   const PRESETS_KEY = 'ezamFilterPresets';
@@ -128,6 +130,14 @@
     const safeId = normalizeOfferId(id);
     if (!safeId) return '';
     return `${BASE}${encodeURIComponent(safeId)}`;
+  }
+
+  function buildBzpNoticeUrl(value) {
+    const raw = String(value || '');
+    const match = raw.match(BZP_NOTICE_RE);
+    if (!match) return '';
+    const normalized = match[0].toUpperCase().replace(/\s+/g, ' ');
+    return `${BZP_NOTICE_BASE}${encodeURIComponent(normalized)}`;
   }
 
   function isTrustedOfferUrl(rawUrl) {
@@ -682,6 +692,25 @@
         }
       });
     }
+  }
+
+  function applyBzpNoticeLink(cells) {
+    const cell = cells[3];
+    if (!cell || cell.querySelector('.ezam-bzp-link')) return;
+    const raw = cell.textContent.trim();
+    if (!raw) return;
+    const url = buildBzpNoticeUrl(raw);
+    if (!url) return;
+
+    const link = document.createElement('a');
+    link.href = url;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.className = 'ezam-bzp-link';
+    link.textContent = raw;
+    link.title = t('bzpNoticeDetails', 'Notice details');
+    cell.textContent = '';
+    cell.appendChild(link);
   }
 
   function copyToClipboard(text) {
@@ -1834,6 +1863,7 @@
 
     applyTooltips(cells);
     applyBadges(row, cells, statusFlags);
+    applyBzpNoticeLink(cells);
 
     const detailsAnchor = row.querySelector('a:not(.ezam-open-link)');
     if (detailsAnchor) {

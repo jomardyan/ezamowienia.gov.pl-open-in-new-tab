@@ -26,6 +26,24 @@
   outline-offset: 2px;
 }
 
+.ezam-bzp-link {
+  color: var(--color-primary, #0089c0);
+  text-decoration: underline;
+  display: inline-flex;
+  align-items: center;
+  line-height: 1.2;
+}
+
+.ezam-bzp-link:hover,
+.ezam-bzp-link:focus-visible {
+  color: var(--color-secondary, #0d4259);
+}
+
+.ezam-bzp-link:focus-visible {
+  outline: 2px solid var(--color-primary, #0089c0);
+  outline-offset: 2px;
+}
+
 .ezam-highlight .ezam-link-row:hover {
   background-color: var(--color-blue-light, #eaf9ff);
 }

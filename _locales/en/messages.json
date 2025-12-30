@@ -200,6 +200,9 @@
   "detailInitiation": {
     "message": "Initiation"
   },
+  "bzpNoticeDetails": {
+    "message": "Notice details"
+  },
   "noteLabel": {
     "message": "Note"
   },

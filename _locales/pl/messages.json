@@ -200,6 +200,9 @@
   "detailInitiation": {
     "message": "Data wszczęcia"
   },
+  "bzpNoticeDetails": {
+    "message": "Szczegóły ogłoszenia"
+  },
   "noteLabel": {
     "message": "Notatka"
   },
