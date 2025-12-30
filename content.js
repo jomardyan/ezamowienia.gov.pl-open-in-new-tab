@@ -646,6 +646,7 @@
   }
 
   function applyAnchor(anchor, url, id, row) {
+    if (anchor.classList.contains('ezam-bzp-link')) return;
     const safeId = normalizeOfferId(id);
     const safeUrl = safeId ? buildOfferUrl(safeId) : '';
     if (!safeUrl) {
@@ -709,6 +710,11 @@
     link.className = 'ezam-bzp-link';
     link.textContent = raw;
     link.title = t('bzpNoticeDetails', 'Notice details');
+    link.addEventListener('click', (event) => {
+      event.stopPropagation();
+    });
+    link.addEventListener('mousedown', (event) => event.stopPropagation(), true);
+    link.addEventListener('pointerdown', (event) => event.stopPropagation(), true);
     cell.textContent = '';
     cell.appendChild(link);
   }
@@ -1865,7 +1871,7 @@
     applyBadges(row, cells, statusFlags);
     applyBzpNoticeLink(cells);
 
-    const detailsAnchor = row.querySelector('a:not(.ezam-open-link)');
+    const detailsAnchor = row.querySelector('a:not(.ezam-open-link):not(.ezam-bzp-link)');
     if (detailsAnchor) {
       applyAnchor(detailsAnchor, url, id, row);
     }
