@@ -40,8 +40,9 @@
 .ezam-actions {
   margin-left: 6px;
   display: inline-flex;
+  flex-direction: column;
   gap: 6px;
-  align-items: center;
+  align-items: stretch;
   vertical-align: middle;
   padding-top: 4px;
 }
@@ -87,7 +88,8 @@
 
 .ezam-controls {
   display: inline-flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-start;
   gap: 6px;
 }
 
@@ -222,9 +224,9 @@
 
 .ezam-expand-actions {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px 8px;
-  align-items: center;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
   margin-bottom: 10px;
 }
 
@@ -317,9 +319,9 @@
 
 .ezam-toolbar-content {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 6px;
-  align-items: center;
+  align-items: stretch;
 }
 
 .ezam-toolbar--minimized .ezam-toolbar-content {
@@ -441,8 +443,9 @@
 
 .ezam-continue-actions {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 6px;
+  align-items: stretch;
 }
 
 .ezam-overlay {

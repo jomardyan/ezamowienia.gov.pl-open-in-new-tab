@@ -2353,6 +2353,7 @@
       applyFocusMode();
       updateToolbarSelection();
       restoreScrollState();
+      setTimeout(refreshRows, 300);
       document.addEventListener('keydown', handleKeyboardNavigation);
       window.addEventListener('beforeunload', saveScrollState);
       window.addEventListener('resize', () => {
