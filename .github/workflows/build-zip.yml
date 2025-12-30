@@ -13,14 +13,13 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Create store-ready zip
-        run: |
-          mkdir -p dist
-          zip -r "dist/E-zamowienia - Open offer in new tab.zip" . \
-            -x ".git/*" ".github/*" "promo-src/*" "screenshots/*"
-
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ezamowienia-extension-zip
-          path: "dist/E-zamowienia - Open offer in new tab.zip"
+          name: E-zamowienia - Open offer in new tab
+          path: |
+            .
+            !.git/**
+            !.github/**
+            !promo-src/**
+            !screenshots/**
