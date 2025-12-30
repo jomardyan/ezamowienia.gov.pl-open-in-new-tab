@@ -16,11 +16,11 @@ jobs:
       - name: Create store-ready zip
         run: |
           mkdir -p dist
-          zip -r dist/ezamowienia-extension.zip . \
+          zip -r "dist/E-zamowienia - Open offer in new tab.zip" . \
             -x ".git/*" ".github/*" "promo-src/*" "screenshots/*"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: ezamowienia-extension-zip
-          path: dist/ezamowienia-extension.zip
+          path: "dist/E-zamowienia - Open offer in new tab.zip"
