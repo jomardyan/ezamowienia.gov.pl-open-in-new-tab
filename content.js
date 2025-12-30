@@ -1,5 +1,10 @@
 (() => {
   const BASE = 'https://ezamowienia.gov.pl/mp-client/tenders/';
+  const BASE_URL = new URL(BASE);
+  const TRUSTED_ORIGIN = BASE_URL.origin;
+  const TRUSTED_PATH_PREFIX = BASE_URL.pathname;
+  const OFFER_ID_RE = /ocds-[a-z0-9-]+/i;
+  const OFFER_ID_MAX_LENGTH = 200;
   const ROW_SELECTOR = 'tr.tr-link';
   const SETTINGS_KEY = 'ezamSettings';
   const FILTERS_KEY = 'ezamFilters';
@@ -67,6 +72,34 @@
     if (value === 'column') return 'details';
     if (value === 'details') return 'details';
     return 'cell';
+  }
+
+  function normalizeOfferId(value) {
+    const match = String(value || '').match(OFFER_ID_RE);
+    if (!match) return '';
+    const id = match[0];
+    if (id.length > OFFER_ID_MAX_LENGTH) return '';
+    return id;
+  }
+
+  function buildOfferUrl(id) {
+    const safeId = normalizeOfferId(id);
+    if (!safeId) return '';
+    return `${BASE}${encodeURIComponent(safeId)}`;
+  }
+
+  function isTrustedOfferUrl(rawUrl) {
+    if (!rawUrl || typeof rawUrl !== 'string') return false;
+    try {
+      const url = new URL(rawUrl);
+      if (url.origin !== TRUSTED_ORIGIN) return false;
+      if (url.protocol !== 'https:') return false;
+      if (url.username || url.password) return false;
+      if (!url.pathname.startsWith(TRUSTED_PATH_PREFIX)) return false;
+      return true;
+    } catch (error) {
+      return false;
+    }
   }
 
   function formatMessage(text, vars) {
@@ -257,31 +290,46 @@
 
   function extractId(cells, row) {
     for (const cell of cells) {
-      const text = cell.textContent.trim();
-      if (/^ocds-/.test(text)) return text;
+      const id = normalizeOfferId(cell.textContent.trim());
+      if (id) return id;
     }
 
-    const fallback = row.textContent.match(/ocds-[a-z0-9-]+/i);
-    return fallback ? fallback[0] : '';
+    return normalizeOfferId(row.textContent);
   }
 
   function openInNewTab(url) {
-    const opened = window.open(url, '_blank', 'noopener');
+    if (!isTrustedOfferUrl(url)) return;
+    const opened = window.open(url, '_blank', 'noopener,noreferrer');
     if (opened) opened.opener = null;
   }
 
   function openWithBackground(url, active) {
-    if (chrome.runtime && chrome.runtime.sendMessage) {
-      chrome.runtime.sendMessage({ type: 'openTab', url, active: Boolean(active) });
-      return true;
+    if (!isTrustedOfferUrl(url)) return Promise.resolve(false);
+    if (!chrome.runtime || !chrome.runtime.sendMessage) {
+      return Promise.resolve(false);
     }
-    return false;
+    return new Promise((resolve) => {
+      chrome.runtime.sendMessage(
+        { type: 'openTab', url, active: Boolean(active) },
+        (response) => {
+          if (chrome.runtime.lastError || !response || response.ok !== true) {
+            resolve(false);
+            return;
+          }
+          resolve(true);
+        }
+      );
+    });
   }
 
   function openOffer(url, overrides = {}) {
+    if (!isTrustedOfferUrl(url)) return;
     const useBackground = overrides.background ?? settings.openInBackground;
     if (useBackground) {
-      if (openWithBackground(url, false)) return;
+      openWithBackground(url, false).then((opened) => {
+        if (!opened) openInNewTab(url);
+      });
+      return;
     }
     openInNewTab(url);
   }
@@ -332,12 +380,23 @@
   }
 
   function applyAnchor(anchor, url, id, row) {
-    anchor.href = url;
+    const safeId = normalizeOfferId(id);
+    const safeUrl = safeId ? buildOfferUrl(safeId) : '';
+    if (!safeUrl) {
+      anchor.removeAttribute('href');
+      anchor.removeAttribute('target');
+      anchor.removeAttribute('rel');
+      delete anchor.dataset.ezamOfferUrl;
+      delete anchor.dataset.ezamOfferId;
+      return;
+    }
+
+    anchor.href = safeUrl;
     anchor.target = '_blank';
     anchor.rel = 'noopener noreferrer';
     anchor.classList.add('ezam-open-link');
-    anchor.dataset.ezamOfferUrl = url;
-    anchor.dataset.ezamOfferId = id;
+    anchor.dataset.ezamOfferUrl = safeUrl;
+    anchor.dataset.ezamOfferId = safeId;
 
     if (!anchor.dataset.ezamBound) {
       anchor.dataset.ezamBound = '1';
@@ -347,24 +406,24 @@
         event.stopPropagation();
         if (settings.openInBackground && event.button === 0 && !event.metaKey && !event.ctrlKey) {
           event.preventDefault();
-          openOffer(url);
+          openOffer(safeUrl);
         }
-        markOpened(id, row);
+        markOpened(safeId, row);
       });
       anchor.addEventListener('mousedown', (event) => event.stopPropagation(), true);
       anchor.addEventListener('pointerdown', (event) => event.stopPropagation(), true);
 
       anchor.addEventListener('keydown', (event) => {
         if (event.key !== 'Enter') return;
-        const offerUrl = anchor.dataset.ezamOfferUrl;
-        if (!offerUrl) return;
         if (event.shiftKey) {
           event.preventDefault();
-          openOffer(offerUrl, { background: true });
+          openOffer(safeUrl, { background: true });
           return;
         }
         event.preventDefault();
-        window.location.href = offerUrl;
+        if (isTrustedOfferUrl(safeUrl)) {
+          window.location.href = safeUrl;
+        }
       });
     }
   }
@@ -811,35 +870,7 @@
     const actions = document.createElement('div');
     actions.className = 'ezam-expand-actions';
 
-    const items = [
-      [t('detailMode', 'Mode'), cells[2]?.textContent.trim()],
-      [t('detailBzpTed', 'BZP/TED'), cells[3]?.textContent.trim()],
-      [t('detailOrganization', 'Organization'), cells[4]?.textContent.trim()],
-      [t('detailCity', 'City'), cells[5]?.textContent.trim()],
-      [t('detailProvince', 'Province'), cells[6]?.textContent.trim()],
-      [t('detailSubmission', 'Submission'), cells[7]?.textContent.trim()],
-      [t('detailInitiation', 'Initiation'), cells[8]?.textContent.trim()]
-    ].filter((entry) => entry[1]);
-
-    const list = document.createElement('div');
-    list.className = 'ezam-expand-grid';
-
-    items.forEach(([label, value]) => {
-      const item = document.createElement('div');
-      item.className = 'ezam-expand-item';
-      const labelSpan = document.createElement('span');
-      labelSpan.className = 'ezam-expand-label';
-      labelSpan.textContent = label + ':';
-      const valueSpan = document.createElement('span');
-      valueSpan.className = 'ezam-expand-value';
-      valueSpan.textContent = value;
-      item.appendChild(labelSpan);
-      item.appendChild(valueSpan);
-      list.appendChild(item);
-    });
-
     detailCell.appendChild(actions);
-    detailCell.appendChild(list);
     detailCell.appendChild(buildNoteSection(id));
     detailsRow.appendChild(detailCell);
     row.insertAdjacentElement('afterend', detailsRow);
@@ -906,7 +937,8 @@
     const id = extractId(cells, row);
     if (!id) return;
 
-    const url = BASE + encodeURIComponent(id);
+    const url = buildOfferUrl(id);
+    if (!url) return;
     row.classList.add('ezam-link-row');
     row.dataset.ezamOfferId = id;
     row.dataset.ezamOfferUrl = url;
@@ -1179,7 +1211,7 @@
 
   function selectAllRows() {
     document.querySelectorAll(ROW_SELECTOR).forEach((row) => {
-      const id = row.dataset.ezamOfferId;
+      const id = normalizeOfferId(row.dataset.ezamOfferId);
       if (!id) return;
       const box = getRowSelectBox(row);
       if (box) box.checked = true;
@@ -1199,16 +1231,13 @@
   function openSelected() {
     const ids = Array.from(selectedIds);
     if (!ids.length) return;
-    const rows = Array.from(document.querySelectorAll(ROW_SELECTOR));
-    const urls = ids
-      .map((id) => rows.find((row) => row.dataset.ezamOfferId === id))
-      .filter(Boolean)
-      .map((row) => row.dataset.ezamOfferUrl);
+    const urls = ids.map((id) => buildOfferUrl(id)).filter((url) => isTrustedOfferUrl(url));
 
     urls.forEach((url, index) => {
       const active = !settings.openInBackground && index === urls.length - 1;
-      if (openWithBackground(url, active)) return;
-      openInNewTab(url);
+      openWithBackground(url, active).then((opened) => {
+        if (!opened) openInNewTab(url);
+      });
     });
   }
 
@@ -1256,14 +1285,16 @@
     } else if (event.key === 'Enter') {
       const rows = Array.from(document.querySelectorAll(ROW_SELECTOR));
       const row = rows[rowCursor];
-      if (row && row.dataset.ezamOfferUrl) {
+      const id = row ? normalizeOfferId(row.dataset.ezamOfferId) : '';
+      const url = id ? buildOfferUrl(id) : '';
+      if (row && url) {
         saveScrollState();
         if (event.shiftKey) {
-          openOffer(row.dataset.ezamOfferUrl, { background: true });
+          openOffer(url, { background: true });
         } else {
-          openOffer(row.dataset.ezamOfferUrl);
+          openOffer(url);
         }
-        markOpened(row.dataset.ezamOfferId, row);
+        markOpened(id, row);
       }
     } else if (event.altKey && event.key === 'ArrowLeft') {
       const { prev } = getPaginationLinks();
