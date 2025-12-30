@@ -21,6 +21,8 @@
   const AUTOCOMPLETE_ID = 'ezam-jump-list';
   const MAX_CHIPS = 6;
   const OPEN_THROTTLE_MS = 180;
+  const PAGE_REFRESH_MAX_ATTEMPTS = 20;
+  const PAGE_WATCH_INTERVAL = 700;
   const DEBUG = false;
 
   if (!LIST_PATH_RE.test(window.location.pathname)) {
@@ -76,6 +78,10 @@
   let lastRefreshAt = 0;
   let pendingFacetRefresh = null;
   let facetRefreshAttempts = 0;
+  let pageRefreshTimer = null;
+  let pageRefreshAttempts = 0;
+  let pageWatchTimer = null;
+  let lastPageSignature = '';
   let filterState = {
     status: 'all',
     city: '',
@@ -522,6 +528,9 @@
   }
 
   function ensureContinuePanel() {
+    if (continuePanel && !continuePanel.isConnected) {
+      continuePanel = null;
+    }
     if (continuePanel) return;
     if (!toolbar) return;
     const toolbarContent = toolbar.querySelector('.ezam-toolbar-content');
@@ -1085,6 +1094,10 @@
   }
 
   function ensureFilterBar() {
+    if (filterBar && !filterBar.isConnected) {
+      filterBar.remove();
+      filterBar = null;
+    }
     if (filterBar) return;
     const container = document.querySelector('#tenderListTable');
     if (!container) return;
@@ -1304,6 +1317,103 @@
         facetRefreshAttempts = 0;
       }
     }, 120);
+  }
+
+  function getPageSignature() {
+    const page = getActivePage();
+    const rows = document.querySelectorAll(ROW_SELECTOR);
+    const firstRow = rows[0];
+    const firstKey = firstRow
+      ? firstRow.dataset.ezamOfferId || firstRow.textContent.trim().slice(0, 32)
+      : '';
+    return `${page}|${rows.length}|${firstKey}`;
+  }
+
+  function autoHealFilters(rows) {
+    if (!rows.length) return;
+    let changed = false;
+    if (filterState.city) {
+      const match = rows.some((row) => row.dataset.ezamCity === filterState.city);
+      if (!match) {
+        filterState.city = '';
+        changed = true;
+      }
+    }
+    if (filterState.organization) {
+      const match = rows.some((row) => row.dataset.ezamOrganization === filterState.organization);
+      if (!match) {
+        filterState.organization = '';
+        changed = true;
+      }
+    }
+    if (changed) {
+      scheduleFilterRefresh();
+    }
+  }
+
+  function refreshPageUi(reason) {
+    pageRefreshAttempts += 1;
+    const table = document.querySelector('#tenderListTable table');
+    const rows = Array.from(document.querySelectorAll(ROW_SELECTOR));
+    if (!table || !rows.length) {
+      if (pageRefreshAttempts <= PAGE_REFRESH_MAX_ATTEMPTS) {
+        pageRefreshTimer = setTimeout(() => refreshPageUi(reason), 220);
+      } else {
+        pageRefreshAttempts = 0;
+      }
+      return;
+    }
+    pageRefreshAttempts = 0;
+    refreshRows();
+    ensureHeaderControls(table);
+    applyStickyHeader();
+    applyFreezeColumns();
+    setupFilterPersistence();
+    updatePresetSelect();
+    ensureToolbar();
+    ensureContinuePanel();
+    autoHealFilters(rows);
+  }
+
+  function schedulePageRefresh(reason) {
+    if (pageRefreshTimer) clearTimeout(pageRefreshTimer);
+    pageRefreshAttempts = 0;
+    pageRefreshTimer = setTimeout(() => {
+      try {
+        refreshPageUi(reason);
+      } catch (error) {
+        logError('page refresh error', error);
+        if (pageRefreshAttempts <= PAGE_REFRESH_MAX_ATTEMPTS) {
+          pageRefreshTimer = setTimeout(() => refreshPageUi(reason), 240);
+        } else {
+          pageRefreshAttempts = 0;
+        }
+      }
+    }, 140);
+  }
+
+  function startPageWatcher() {
+    if (pageWatchTimer) return;
+    lastPageSignature = getPageSignature();
+    pageWatchTimer = setInterval(() => {
+      const nextSignature = getPageSignature();
+      if (!nextSignature || nextSignature === lastPageSignature) return;
+      lastPageSignature = nextSignature;
+      schedulePageRefresh('page-watch');
+    }, PAGE_WATCH_INTERVAL);
+  }
+
+  function bindPaginationListener() {
+    if (document.body.dataset.ezamPaginationReady) return;
+    document.body.dataset.ezamPaginationReady = '1';
+    document.addEventListener('click', (event) => {
+      const target = event.target;
+      if (!target || !target.closest) return;
+      const link = target.closest('.pagination-container a, .pagination a');
+      if (!link) return;
+      if (link.classList.contains('disabled')) return;
+      schedulePageRefresh('pagination-click');
+    });
   }
 
   function ensureAutocomplete() {
@@ -2120,15 +2230,24 @@
       }
     } else if (event.altKey && event.key === 'ArrowLeft') {
       const { prev } = getPaginationLinks();
-      if (prev && !prev.classList.contains('disabled')) prev.click();
+      if (prev && !prev.classList.contains('disabled')) {
+        prev.click();
+        schedulePageRefresh('keyboard-prev');
+      }
     } else if (event.altKey && event.key === 'ArrowRight') {
       const { next } = getPaginationLinks();
-      if (next && !next.classList.contains('disabled')) next.click();
+      if (next && !next.classList.contains('disabled')) {
+        next.click();
+        schedulePageRefresh('keyboard-next');
+      }
     }
   }
 
   function ensureToolbar() {
     if (!settings.showMiniToolbar) return;
+    if (toolbar && !toolbar.isConnected) {
+      toolbar = null;
+    }
     if (toolbar) return;
 
     toolbar = document.createElement('div');
@@ -2162,7 +2281,10 @@
     prevBtn.textContent = t('prevPage', 'Prev page');
     prevBtn.addEventListener('click', () => {
       const { prev } = getPaginationLinks();
-      if (prev && !prev.classList.contains('disabled')) prev.click();
+      if (prev && !prev.classList.contains('disabled')) {
+        prev.click();
+        schedulePageRefresh('toolbar-prev');
+      }
     });
 
     const nextBtn = document.createElement('button');
@@ -2171,7 +2293,10 @@
     nextBtn.textContent = t('nextPage', 'Next page');
     nextBtn.addEventListener('click', () => {
       const { next } = getPaginationLinks();
-      if (next && !next.classList.contains('disabled')) next.click();
+      if (next && !next.classList.contains('disabled')) {
+        next.click();
+        schedulePageRefresh('toolbar-next');
+      }
     });
 
     const openSelectedBtn = document.createElement('button');
@@ -2366,6 +2491,7 @@
       applyStickyHeader();
       applyFreezeColumns();
       setupFilterPersistence();
+      bindPaginationListener();
       ensureHeaderControls(document.querySelector('#tenderListTable table'));
       ensureToolbar();
       ensureContinuePanel();
@@ -2373,6 +2499,7 @@
       updateToolbarSelection();
       restoreScrollState();
       scheduleInitialRefresh();
+      startPageWatcher();
       document.addEventListener('keydown', handleKeyboardNavigation);
       window.addEventListener('beforeunload', saveScrollState);
       window.addEventListener('resize', () => {

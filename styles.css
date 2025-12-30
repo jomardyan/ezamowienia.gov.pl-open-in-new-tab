@@ -16,6 +16,16 @@
   transition: opacity 150ms ease;
 }
 
+.ezam-open-link:hover,
+.ezam-open-link:focus-visible {
+  color: var(--color-secondary, #0d4259);
+}
+
+.ezam-open-link:focus-visible {
+  outline: 2px solid var(--color-primary, #0089c0);
+  outline-offset: 2px;
+}
+
 .ezam-highlight .ezam-link-row:hover {
   background-color: var(--color-blue-light, #eaf9ff);
 }
@@ -47,12 +57,33 @@
   padding-top: 4px;
 }
 
+.ezam-actions .btn,
+.ezam-continue .btn,
+.ezam-expand-actions .btn,
+.ezam-filter-bar .btn,
+.ezam-menu-item,
+.ezam-toolbar .btn,
+.ezam-toggle-btn,
 .ezam-action-btn {
   padding: 2px 6px !important;
   min-height: 22px !important;
-  min-width: 26px !important;
-  line-height: 1.1 !important;
   font-size: 12px !important;
+  line-height: 1.1 !important;
+}
+
+.ezam-actions .btn,
+.ezam-continue .btn,
+.ezam-expand-actions .btn,
+.ezam-filter-bar .btn,
+.ezam-menu-item,
+.ezam-toolbar .btn,
+.ezam-toggle-btn,
+.ezam-action-btn {
+  border-radius: 4px;
+}
+
+.ezam-action-btn {
+  min-width: 26px !important;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -60,7 +91,7 @@
 }
 
 .ezam-icon {
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1;
   vertical-align: middle;
 }
@@ -73,8 +104,8 @@
 }
 
 .ezam-select-box {
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
   margin: 0;
 }
 
@@ -83,10 +114,6 @@
 }
 
 .ezam-toggle-btn {
-  padding: 2px 6px !important;
-  min-height: 22px !important;
-  font-size: 12px !important;
-  line-height: 1.1 !important;
   white-space: nowrap;
 }
 
@@ -125,20 +152,23 @@
 .ezam-menu-item {
   width: 100%;
   text-align: left;
-  padding: 2px 6px !important;
-  min-height: 22px !important;
-  font-size: 12px !important;
-  line-height: 1.1 !important;
 }
 
-.ezam-toolbar .btn,
-.ezam-continue .btn,
-.ezam-expand-actions .btn,
-.ezam-filter-bar .btn {
-  padding: 2px 6px !important;
-  min-height: 22px !important;
-  font-size: 12px !important;
-  line-height: 1.1 !important;
+.ezam-menu-item:hover,
+.ezam-menu-item:focus-visible {
+  background: var(--color-blue-light, #eaf9ff);
+}
+
+.ezam-menu-item:focus-visible,
+.ezam-action-btn:focus-visible,
+.ezam-toggle-btn:focus-visible,
+.ezam-toolbar .btn:focus-visible,
+.ezam-filter-bar .btn:focus-visible,
+.ezam-expand-actions .btn:focus-visible,
+.ezam-continue .btn:focus-visible,
+.ezam-select-box:focus-visible {
+  outline: 2px solid var(--color-primary, #0089c0);
+  outline-offset: 2px;
 }
 
 .ezam-sticky thead th {
@@ -313,6 +343,11 @@
   box-sizing: border-box;
 }
 
+.ezam-note-input:focus-visible {
+  outline: 2px solid var(--color-primary, #0089c0);
+  outline-offset: 2px;
+}
+
 .ezam-note-count {
   align-self: flex-end;
   font-size: 11px;
@@ -335,6 +370,8 @@
   border-radius: 6px;
   box-shadow: 0 6px 14px rgba(0, 0, 0, 0.12);
   z-index: 9998;
+  max-height: min(85vh, 760px);
+  overflow: auto;
 }
 
 .ezam-toolbar-content {
@@ -354,13 +391,13 @@
 
 .ezam-toolbar-input {
   min-width: 180px;
-  height: 30px;
+  height: 28px;
   padding: 4px 8px;
 }
 
 .ezam-preset-select {
   min-width: 140px;
-  height: 30px;
+  height: 28px;
   padding: 4px 8px;
 }
 
@@ -418,12 +455,18 @@
   background: var(--color-body, #fff);
   font-size: 12px;
   cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
 }
 
 .ezam-chip--active {
   background: var(--color-primary, #0089c0);
   border-color: var(--color-primary, #0089c0);
   color: #fff;
+}
+
+.ezam-chip:hover,
+.ezam-chip:focus-visible {
+  border-color: var(--color-primary, #0089c0);
 }
 
 .ezam-filter-clear {

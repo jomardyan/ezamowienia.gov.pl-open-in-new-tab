@@ -128,15 +128,33 @@ function bindInputs(settings) {
       input.value = String(value);
     }
 
-    input.addEventListener('change', () => {
+    const readNumberValue = (fallback) => {
+      const raw = input.value.trim();
+      const parsed = Number(raw);
+      if (!Number.isFinite(parsed)) return fallback;
+      const min = input.min !== '' ? Number(input.min) : null;
+      const max = input.max !== '' ? Number(input.max) : null;
+      let next = parsed;
+      if (Number.isFinite(min)) next = Math.max(next, min);
+      if (Number.isFinite(max)) next = Math.min(next, max);
+      return next;
+    };
+
+    const commitValue = () => {
       const updated = { ...settings };
+      const current = settings[key];
       if (input.type === 'checkbox') {
         updated[key] = input.checked;
       } else if (input.type === 'number') {
-        updated[key] = Number(input.value);
+        const nextValue = readNumberValue(current);
+        updated[key] = nextValue;
+        if (nextValue !== Number(input.value)) {
+          input.value = String(nextValue);
+        }
       } else {
         updated[key] = input.value;
       }
+      if (updated[key] === current) return;
       settings = updated;
       saveSettings(updated);
 
@@ -145,7 +163,12 @@ function bindInputs(settings) {
           applyI18n();
         });
       }
-    });
+    };
+
+    input.addEventListener('change', commitValue);
+    if (input.type === 'number') {
+      input.addEventListener('input', commitValue);
+    }
   });
 }
 
