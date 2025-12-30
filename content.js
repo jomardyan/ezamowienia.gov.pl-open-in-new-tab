@@ -1659,15 +1659,6 @@
       cell.insertBefore(actions, cell.firstChild);
     }
 
-    let openLink = actions.querySelector('a.ezam-expand-open');
-    if (!openLink) {
-      openLink = document.createElement('a');
-      openLink.className = 'btn btn-outline-secondary btn-sm ezam-open-link ezam-expand-open';
-      actions.appendChild(openLink);
-    }
-    openLink.textContent = t('openLink', 'Open');
-    applyAnchor(openLink, url, id, row);
-
     if (settings.multiSelect) {
       if (!actions.querySelector('.ezam-select')) {
         const select = buildSelectCheckbox(id);
@@ -1677,6 +1668,15 @@
     } else {
       actions.querySelectorAll('.ezam-select').forEach((node) => node.remove());
     }
+
+    let openLink = actions.querySelector('a.ezam-expand-open');
+    if (!openLink) {
+      openLink = document.createElement('a');
+      openLink.className = 'btn btn-outline-secondary btn-sm ezam-open-link ezam-expand-open';
+      actions.appendChild(openLink);
+    }
+    openLink.textContent = t('openLink', 'Open');
+    applyAnchor(openLink, url, id, row);
 
     if (settings.showCopyButtons) {
       if (!actions.querySelector('.ezam-actions')) {
@@ -1755,6 +1755,10 @@
         clearExpandActions(detailsRow);
       }
 
+      if (settings.multiSelect && actionsCell && !actionsCell.querySelector('.ezam-select')) {
+        actionsCell.appendChild(buildSelectCheckbox(id));
+      }
+
       let openLink = actionsCell ? actionsCell.querySelector('a.ezam-open-link') : null;
       if (!openLink && detailsAnchor) {
         openLink = detailsAnchor;
@@ -1767,10 +1771,6 @@
       }
       if (openLink) {
         applyAnchor(openLink, url, id, row);
-      }
-
-      if (settings.multiSelect && actionsCell && !actionsCell.querySelector('.ezam-select')) {
-        actionsCell.appendChild(buildSelectCheckbox(id));
       }
 
       if (settings.showCopyButtons && actionsCell && !actionsCell.querySelector('.ezam-actions')) {
@@ -2326,6 +2326,25 @@
     }).observe(document.body, { childList: true, subtree: true });
   }
 
+  function scheduleInitialRefresh() {
+    let attempts = 0;
+    const maxAttempts = 30;
+    const timer = setInterval(() => {
+      attempts += 1;
+      const table = document.querySelector('#tenderListTable table');
+      const rows = document.querySelectorAll(ROW_SELECTOR);
+      if (table && rows.length) {
+        clearInterval(timer);
+        ensureHeaderControls(table);
+        refreshRows();
+        return;
+      }
+      if (attempts >= maxAttempts) {
+        clearInterval(timer);
+      }
+    }, 250);
+  }
+
   loadSettings()
     .then(() => loadMessages(settings.language))
     .then(() => loadNotes())
@@ -2353,7 +2372,7 @@
       applyFocusMode();
       updateToolbarSelection();
       restoreScrollState();
-      setTimeout(refreshRows, 300);
+      scheduleInitialRefresh();
       document.addEventListener('keydown', handleKeyboardNavigation);
       window.addEventListener('beforeunload', saveScrollState);
       window.addEventListener('resize', () => {

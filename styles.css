@@ -48,10 +48,11 @@
 }
 
 .ezam-action-btn {
-  padding: 4px 8px;
-  min-height: 28px;
-  min-width: 34px;
-  line-height: 1;
+  padding: 2px 6px !important;
+  min-height: 22px !important;
+  min-width: 26px !important;
+  line-height: 1.1 !important;
+  font-size: 12px !important;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -82,7 +83,10 @@
 }
 
 .ezam-toggle-btn {
-  padding: 2px 8px;
+  padding: 2px 6px !important;
+  min-height: 22px !important;
+  font-size: 12px !important;
+  line-height: 1.1 !important;
   white-space: nowrap;
 }
 
@@ -121,6 +125,20 @@
 .ezam-menu-item {
   width: 100%;
   text-align: left;
+  padding: 2px 6px !important;
+  min-height: 22px !important;
+  font-size: 12px !important;
+  line-height: 1.1 !important;
+}
+
+.ezam-toolbar .btn,
+.ezam-continue .btn,
+.ezam-expand-actions .btn,
+.ezam-filter-bar .btn {
+  padding: 2px 6px !important;
+  min-height: 22px !important;
+  font-size: 12px !important;
+  line-height: 1.1 !important;
 }
 
 .ezam-sticky thead th {
@@ -303,8 +321,10 @@
 
 .ezam-toolbar {
   position: fixed;
-  left: 16px;
-  bottom: 16px;
+  top: 16px;
+  right: 16px;
+  left: auto;
+  bottom: auto;
   display: flex;
   flex-wrap: wrap;
   gap: 6px;

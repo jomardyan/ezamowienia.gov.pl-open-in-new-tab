@@ -42,7 +42,7 @@
     "message": "Cell"
   },
   "linkPlacementColumn": {
-    "message": "Details panel"
+    "message": "Note panel"
   },
   "labelFreezeColumns": {
     "message": "Freeze columns"
@@ -129,19 +129,19 @@
     "message": "Link copied"
   },
   "toggleDetails": {
-    "message": "Toggle details"
+    "message": "Toggle note"
   },
   "more": {
-    "message": "Details"
+    "message": "Note"
   },
   "less": {
-    "message": "Hide details"
+    "message": "Hide note"
   },
   "openLink": {
     "message": "Open"
   },
   "linkPlacementColumnLabel": {
-    "message": "Link: Details"
+    "message": "Link: Note"
   },
   "linkPlacementCellLabel": {
     "message": "Link: Cell"

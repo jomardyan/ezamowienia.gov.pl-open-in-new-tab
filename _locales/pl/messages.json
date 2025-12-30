@@ -42,7 +42,7 @@
     "message": "Komórka"
   },
   "linkPlacementColumn": {
-    "message": "Szczegóły"
+    "message": "Notatka"
   },
   "labelFreezeColumns": {
     "message": "Zamrożenie kolumn"
@@ -129,19 +129,19 @@
     "message": "Skopiowano link"
   },
   "toggleDetails": {
-    "message": "Przełącz szczegóły"
+    "message": "Przełącz notatkę"
   },
   "more": {
-    "message": "Szczegóły"
+    "message": "Notatka"
   },
   "less": {
-    "message": "Zwiń"
+    "message": "Ukryj notatkę"
   },
   "openLink": {
     "message": "Otwórz"
   },
   "linkPlacementColumnLabel": {
-    "message": "Link: Szczegóły"
+    "message": "Link: Notatka"
   },
   "linkPlacementCellLabel": {
     "message": "Link: Komórka"
