@@ -21,6 +21,7 @@
   const AUTOCOMPLETE_ID = 'ezam-jump-list';
   const MAX_CHIPS = 6;
   const OPEN_THROTTLE_MS = 180;
+  const DEBUG = false;
 
   if (!LIST_PATH_RE.test(window.location.pathname)) {
     return;
@@ -71,6 +72,10 @@
   let pageIndicator = null;
   let jumpDatalist = null;
   let focusModeEnabled = false;
+  let suppressObserver = false;
+  let lastRefreshAt = 0;
+  let pendingFacetRefresh = null;
+  let facetRefreshAttempts = 0;
   let filterState = {
     status: 'all',
     city: '',
@@ -78,6 +83,16 @@
     starredOnly: false
   };
   let filterRefreshTimer = null;
+
+  function logDebug(...args) {
+    if (!DEBUG) return;
+    console.debug('[ezam]', ...args);
+  }
+
+  function logError(...args) {
+    if (!DEBUG) return;
+    console.error('[ezam]', ...args);
+  }
 
   function detectLanguage() {
     const ui = (chrome.i18n && chrome.i18n.getUILanguage && chrome.i18n.getUILanguage()) || '';
@@ -508,6 +523,9 @@
 
   function ensureContinuePanel() {
     if (continuePanel) return;
+    if (!toolbar) return;
+    const toolbarContent = toolbar.querySelector('.ezam-toolbar-content');
+    if (!toolbarContent) return;
     continuePanel = document.createElement('div');
     continuePanel.className = 'ezam-continue';
 
@@ -554,7 +572,7 @@
     continuePanel.appendChild(title);
     continuePanel.appendChild(actions);
 
-    document.body.appendChild(continuePanel);
+    toolbarContent.appendChild(continuePanel);
     updateContinuePanel();
   }
 
@@ -1057,6 +1075,15 @@
     }
   }
 
+  function isEzamNode(node) {
+    if (!node || node.nodeType !== 1) return false;
+    if (node.classList && Array.from(node.classList).some((cls) => cls.startsWith('ezam-'))) {
+      return true;
+    }
+    const parent = node.parentElement;
+    return parent ? parent.closest('[class*="ezam-"]') !== null : false;
+  }
+
   function ensureFilterBar() {
     if (filterBar) return;
     const container = document.querySelector('#tenderListTable');
@@ -1099,6 +1126,16 @@
     };
   }
 
+  function needsFacetRefresh() {
+    const rows = Array.from(document.querySelectorAll(ROW_SELECTOR));
+    if (!rows.length) return false;
+    return rows.some((row) => {
+      const org = row.dataset.ezamOrganization || '';
+      const city = row.dataset.ezamCity || '';
+      return !org || !city;
+    });
+  }
+
   function applyFilters() {
     const rows = Array.from(document.querySelectorAll(ROW_SELECTOR));
     rows.forEach((row) => {
@@ -1132,10 +1169,10 @@
 
     const facets = collectFacetValues();
     if (filterState.city && !facets.cities.includes(filterState.city)) {
-      filterState.city = '';
+      facets.cities.unshift(filterState.city);
     }
     if (filterState.organization && !facets.organizations.includes(filterState.organization)) {
-      filterState.organization = '';
+      facets.organizations.unshift(filterState.organization);
     }
 
     filterBar.textContent = '';
@@ -1246,8 +1283,26 @@
   function scheduleFilterRefresh() {
     if (filterRefreshTimer) clearTimeout(filterRefreshTimer);
     filterRefreshTimer = setTimeout(() => {
+      const now = Date.now();
+      if (now - lastRefreshAt < 250) return;
+      lastRefreshAt = now;
+      suppressObserver = true;
       updateFilterBar();
       applyFilters();
+      updateAutocomplete();
+      updatePageIndicator();
+      suppressObserver = false;
+      if (needsFacetRefresh()) {
+        facetRefreshAttempts += 1;
+        if (facetRefreshAttempts <= 20) {
+          if (pendingFacetRefresh) clearTimeout(pendingFacetRefresh);
+          pendingFacetRefresh = setTimeout(scheduleFilterRefresh, 250);
+        } else {
+          facetRefreshAttempts = 0;
+        }
+      } else {
+        facetRefreshAttempts = 0;
+      }
     }, 120);
   }
 
@@ -2221,6 +2276,7 @@
     updatePresetSelect();
     applyToolbarState();
     updatePageIndicator();
+    ensureContinuePanel();
   }
 
   function applyToolbarState() {
@@ -2239,24 +2295,34 @@
 
   function observeChanges() {
     new MutationObserver((mutations) => {
-      for (const mutation of mutations) {
-        for (const node of mutation.addedNodes) {
-          if (node.nodeType !== 1) continue;
-          if (node.matches && node.matches(ROW_SELECTOR)) {
-            addLinkToRow(node);
-          } else if (node.querySelectorAll) {
-            node.querySelectorAll(ROW_SELECTOR).forEach(addLinkToRow);
+      try {
+        if (suppressObserver) return;
+        let shouldRefresh = false;
+        for (const mutation of mutations) {
+          for (const node of mutation.addedNodes) {
+            if (node.nodeType !== 1) continue;
+            if (isEzamNode(node) || isEzamNode(mutation.target)) continue;
+            if (node.matches && node.matches(ROW_SELECTOR)) {
+              addLinkToRow(node);
+              shouldRefresh = true;
+            } else if (node.querySelectorAll) {
+              const rows = node.querySelectorAll(ROW_SELECTOR);
+              if (rows.length) {
+                rows.forEach(addLinkToRow);
+                shouldRefresh = true;
+              }
+            }
           }
         }
-      }
 
-      setupFilterPersistence();
-      ensureHeaderControls(document.querySelector('#tenderListTable table'));
-      applyStickyHeader();
-      applyFreezeColumns();
-      scheduleFilterRefresh();
-      updateAutocomplete();
-      updatePageIndicator();
+        setupFilterPersistence();
+        ensureHeaderControls(document.querySelector('#tenderListTable table'));
+        applyStickyHeader();
+        applyFreezeColumns();
+        if (shouldRefresh) scheduleFilterRefresh();
+      } catch (error) {
+        logError('MutationObserver error', error);
+      }
     }).observe(document.body, { childList: true, subtree: true });
   }
 
@@ -2267,6 +2333,13 @@
     .then(() => loadLastOpened())
     .then(() => {
       t = translate;
+
+      window.addEventListener('error', (event) => {
+        logError('window error', event.error || event.message);
+      });
+      window.addEventListener('unhandledrejection', (event) => {
+        logError('unhandled rejection', event.reason);
+      });
 
       applyCompactColumns();
       applyGlobalClasses();
@@ -2294,5 +2367,8 @@
         });
       }
       observeChanges();
+    })
+    .catch((error) => {
+      logError('init error', error);
     });
 })();

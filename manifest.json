@@ -18,7 +18,7 @@
   "web_accessible_resources": [
     {
       "resources": ["_locales/en/messages.json", "_locales/pl/messages.json"],
-      "matches": ["https://ezamowienia.gov.pl/mp-client/*"]
+      "matches": ["*://ezamowienia.gov.pl/*"]
     }
   ],
   "background": {

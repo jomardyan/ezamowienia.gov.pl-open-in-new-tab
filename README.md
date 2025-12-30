@@ -1,16 +1,17 @@
 # E-zamowienia - Open offer in new tab
 
-Non-official Chrome/Edge extension that adds real links to offers on
-ezamowienia.gov.pl so they can be opened in a new tab.
+Non-official Chrome/Edge extension that improves navigating offers on
+ezamowienia.gov.pl by adding direct links, smart actions, and quick navigation tools.
 
 ## Features
 
-- Adds direct "Open" links on tender lists
-- Optional row click and middle-click open
-- Background tab support
-- Inline details view and status badges
-- Copy ID/link buttons
-- Sticky toolbar with quick actions
+- Direct "Open" links on tender lists
+- Optional row click, middle-click, and background tab opening
+- Quick filters (status, city, organization) plus starred offers
+- Compare selected offers side-by-side
+- Keyboard shortcuts, quick jump search, and next-unread navigation
+- Sticky toolbar, continue-reading panel, and page progress indicator
+- Copy ID/link actions, inline details, status badges, and notes
 - Polish/English UI with auto-detect
 
 ## Install (developer mode)
@@ -27,7 +28,7 @@ Use the extension options page to configure behavior, UI, filters, and language.
 
 - `storage`: save settings and filters
 - `tabs`: open offers in new/background tabs
-- `https://ezamowienia.gov.pl/*`: modify list pages
+- `https://ezamowienia.gov.pl/mp-client/*`: modify list pages
 
 ## Privacy
 
