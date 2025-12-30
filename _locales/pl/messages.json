@@ -1,6 +1,6 @@
 {
   "appName": {
-    "message": "ezamowienia.gov.pl — Szybkie otwieranie stron ofert (Nieoficjalne)"
+    "message": "E-zamowienia - Open offer in new tab"
   },
   "appDescription": {
     "message": "Nieoficjalne rozszerzenie. Dodaje prawdziwe linki do ofert na ezamowienia.gov.pl, aby otwierały się w nowej karcie."
@@ -9,10 +9,10 @@
     "message": "Otwórz opcje"
   },
   "optionsTitle": {
-    "message": "Opcje: ezamowienia.gov.pl — Szybkie otwieranie stron ofert (Nieoficjalne)"
+    "message": "Opcje: E-zamowienia - Open offer in new tab"
   },
   "optionsHeading": {
-    "message": "Opcje: ezamowienia.gov.pl — Szybkie otwieranie stron ofert (Nieoficjalne)"
+    "message": "Opcje: E-zamowienia - Open offer in new tab"
   },
   "sectionGeneral": {
     "message": "Ogólne"
