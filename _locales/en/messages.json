@@ -245,6 +245,108 @@
   "toolbarExpand": {
     "message": "Show toolbar"
   },
+  "continueHeading": {
+    "message": "Continue reading"
+  },
+  "continueOpen": {
+    "message": "Open last"
+  },
+  "continueBack": {
+    "message": "Back to row"
+  },
+  "rowNotFound": {
+    "message": "Row not found on this page"
+  },
+  "filterStatus": {
+    "message": "Status"
+  },
+  "filterAll": {
+    "message": "All"
+  },
+  "filterNew": {
+    "message": "New"
+  },
+  "filterSoon": {
+    "message": "Closing soon"
+  },
+  "filterOrganization": {
+    "message": "Organization"
+  },
+  "filterCity": {
+    "message": "City"
+  },
+  "filterStarred": {
+    "message": "Starred"
+  },
+  "filterStarredOn": {
+    "message": "On"
+  },
+  "filterStarredOff": {
+    "message": "Off"
+  },
+  "filterClear": {
+    "message": "Clear filters"
+  },
+  "pageProgress": {
+    "message": "Page {current}/{total}"
+  },
+  "pageCurrent": {
+    "message": "Page {current}"
+  },
+  "shortcutsTitle": {
+    "message": "Keyboard shortcuts"
+  },
+  "shortcutsButton": {
+    "message": "Shortcuts"
+  },
+  "shortcutHelp": {
+    "message": "Show this help"
+  },
+  "shortcutMove": {
+    "message": "Move selection"
+  },
+  "shortcutOpen": {
+    "message": "Open selected row"
+  },
+  "shortcutOpenBg": {
+    "message": "Open in background"
+  },
+  "shortcutNextUnread": {
+    "message": "Open next unread"
+  },
+  "shortcutFocus": {
+    "message": "Toggle focus mode"
+  },
+  "shortcutStar": {
+    "message": "Star selected row"
+  },
+  "close": {
+    "message": "Close"
+  },
+  "compareTitle": {
+    "message": "Compare selected"
+  },
+  "compareSelected": {
+    "message": "Compare"
+  },
+  "compareEmpty": {
+    "message": "Select at least one row to compare."
+  },
+  "openNextUnread": {
+    "message": "Next unread"
+  },
+  "focusMode": {
+    "message": "Focus"
+  },
+  "noUnread": {
+    "message": "No unread offers on this page"
+  },
+  "starOffer": {
+    "message": "Star"
+  },
+  "unstarOffer": {
+    "message": "Unstar"
+  },
   "descLanguage": {
     "message": "Choose the UI language for the extension."
   },

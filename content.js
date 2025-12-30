@@ -12,10 +12,15 @@
   const OPENED_KEY = 'ezamOpenedIds';
   const SCROLL_KEY = 'ezamScrollState';
   const NOTES_KEY = 'ezamOfferNotes';
+  const STARRED_KEY = 'ezamStarredIds';
+  const LAST_OPENED_KEY = 'ezamLastOpened';
   const LIST_PATH_RE = /^\/mp-client\/(tenders|search\/list)\/?$/;
   const LOCALES = ['en', 'pl'];
   const COMPACT_MAX_WIDTH = 1920;
   const NOTE_MAX_LENGTH = 256;
+  const AUTOCOMPLETE_ID = 'ezam-jump-list';
+  const MAX_CHIPS = 6;
+  const OPEN_THROTTLE_MS = 180;
 
   if (!LIST_PATH_RE.test(window.location.pathname)) {
     return;
@@ -50,6 +55,7 @@
   let offerNotes = Object.create(null);
   const openedIds = new Set(loadOpenedIds());
   const selectedIds = new Set();
+  const starredIds = new Set();
   let rowCursor = -1;
   let toolbar = null;
   let messages = {};
@@ -57,6 +63,21 @@
   let t = (key, fallback) => fallback || key;
   let compactColumns = false;
   let compactTimer = null;
+  let lastOpened = null;
+  let filterBar = null;
+  let continuePanel = null;
+  let shortcutsOverlay = null;
+  let compareOverlay = null;
+  let pageIndicator = null;
+  let jumpDatalist = null;
+  let focusModeEnabled = false;
+  let filterState = {
+    status: 'all',
+    city: '',
+    organization: '',
+    starredOnly: false
+  };
+  let filterRefreshTimer = null;
 
   function detectLanguage() {
     const ui = (chrome.i18n && chrome.i18n.getUILanguage && chrome.i18n.getUILanguage()) || '';
@@ -190,6 +211,100 @@
     return offerNotes[id] || '';
   }
 
+  function loadStarred() {
+    return new Promise((resolve) => {
+      if (!chrome.storage || !chrome.storage.local) {
+        resolve(starredIds);
+        return;
+      }
+      chrome.storage.local.get(STARRED_KEY, (data) => {
+        const stored = data[STARRED_KEY];
+        starredIds.clear();
+        if (Array.isArray(stored)) {
+          stored.forEach((id) => {
+            const safeId = normalizeOfferId(id);
+            if (safeId) starredIds.add(safeId);
+          });
+        }
+        resolve(starredIds);
+      });
+    });
+  }
+
+  function saveStarred() {
+    if (!chrome.storage || !chrome.storage.local) return;
+    chrome.storage.local.set({ [STARRED_KEY]: Array.from(starredIds) });
+  }
+
+  function toggleStar(id, row) {
+    const safeId = normalizeOfferId(id);
+    if (!safeId) return;
+    if (starredIds.has(safeId)) {
+      starredIds.delete(safeId);
+    } else {
+      starredIds.add(safeId);
+    }
+    if (row) {
+      row.classList.toggle('ezam-starred', starredIds.has(safeId));
+    }
+    updateStarButtons(safeId);
+    saveStarred();
+    updateFilterBar();
+    applyFilters();
+  }
+
+  function updateStarButtons(id) {
+    const active = starredIds.has(id);
+    document.querySelectorAll(`[data-ezam-star="${id}"]`).forEach((button) => {
+      const icon = button.querySelector('.ezam-icon');
+      if (!icon) return;
+      const label = active ? t('unstarOffer', 'Unstar') : t('starOffer', 'Star');
+      icon.textContent = active ? 'star' : 'star_border';
+      button.title = label;
+      button.setAttribute('aria-label', label);
+      button.classList.toggle('ezam-star-btn--active', active);
+    });
+  }
+
+  function loadLastOpened() {
+    return new Promise((resolve) => {
+      if (!chrome.storage || !chrome.storage.local) {
+        lastOpened = null;
+        resolve(lastOpened);
+        return;
+      }
+      chrome.storage.local.get(LAST_OPENED_KEY, (data) => {
+        const stored = data[LAST_OPENED_KEY];
+        if (stored && typeof stored === 'object' && stored.id && stored.url) {
+          lastOpened = {
+            id: normalizeOfferId(stored.id),
+            title: String(stored.title || ''),
+            url: String(stored.url || ''),
+            ts: Number(stored.ts || 0)
+          };
+        } else {
+          lastOpened = null;
+        }
+        resolve(lastOpened);
+      });
+    });
+  }
+
+  function saveLastOpened(payload) {
+    if (!payload) return;
+    lastOpened = payload;
+    if (chrome.storage && chrome.storage.local) {
+      chrome.storage.local.set({ [LAST_OPENED_KEY]: payload });
+    }
+    updateContinuePanel();
+  }
+
+  function getRowTitle(row) {
+    if (!row) return '';
+    const cell = row.querySelector('td');
+    return cell ? cell.textContent.trim() : '';
+  }
+
   function loadSettings() {
     return new Promise((resolve) => {
       if (!chrome.storage || !chrome.storage.sync) {
@@ -213,6 +328,22 @@
     document.querySelectorAll('.ezam-select').forEach((node) => node.remove());
     document.querySelectorAll('.ezam-expand-toggle').forEach((node) => node.remove());
     document.querySelectorAll('.ezam-open-link--generated').forEach((node) => node.remove());
+    if (filterBar) {
+      filterBar.remove();
+      filterBar = null;
+    }
+    if (continuePanel) {
+      continuePanel.remove();
+      continuePanel = null;
+    }
+    if (shortcutsOverlay) {
+      shortcutsOverlay.remove();
+      shortcutsOverlay = null;
+    }
+    if (compareOverlay) {
+      compareOverlay.remove();
+      compareOverlay = null;
+    }
 
     const table = document.querySelector('#tenderListTable table');
     if (table) {
@@ -234,6 +365,9 @@
       ensureToolbar();
       updateToolbarSelection();
     }
+    ensureContinuePanel();
+    updateFilterBar();
+    updatePageIndicator();
   }
 
   function handleSettingsUpdate(next) {
@@ -372,11 +506,106 @@
     }, 1600);
   }
 
+  function ensureContinuePanel() {
+    if (continuePanel) return;
+    continuePanel = document.createElement('div');
+    continuePanel.className = 'ezam-continue';
+
+    const heading = document.createElement('div');
+    heading.className = 'ezam-continue-heading';
+    heading.textContent = t('continueHeading', 'Continue reading');
+
+    const title = document.createElement('div');
+    title.className = 'ezam-continue-title';
+
+    const actions = document.createElement('div');
+    actions.className = 'ezam-continue-actions';
+
+    const openBtn = document.createElement('button');
+    openBtn.type = 'button';
+    openBtn.className = 'btn btn-secondary btn-sm';
+    openBtn.textContent = t('continueOpen', 'Open last');
+    openBtn.addEventListener('click', () => {
+      if (lastOpened && lastOpened.url) {
+        if (lastOpened.id) {
+          const row = Array.from(document.querySelectorAll(ROW_SELECTOR)).find(
+            (candidate) => candidate.dataset.ezamOfferId === lastOpened.id
+          );
+          if (row) markOpened(lastOpened.id, row);
+        }
+        openOffer(lastOpened.url, { background: settings.openInBackground });
+      }
+    });
+
+    const backBtn = document.createElement('button');
+    backBtn.type = 'button';
+    backBtn.className = 'btn btn-outline-secondary btn-sm';
+    backBtn.textContent = t('continueBack', 'Back to row');
+    backBtn.addEventListener('click', () => {
+      if (lastOpened && lastOpened.id) {
+        scrollToRowById(lastOpened.id);
+      }
+    });
+
+    actions.appendChild(openBtn);
+    actions.appendChild(backBtn);
+
+    continuePanel.appendChild(heading);
+    continuePanel.appendChild(title);
+    continuePanel.appendChild(actions);
+
+    document.body.appendChild(continuePanel);
+    updateContinuePanel();
+  }
+
+  function updateContinuePanel() {
+    if (!continuePanel) return;
+    if (!lastOpened || !lastOpened.id) {
+      continuePanel.classList.remove('ezam-continue--show');
+      return;
+    }
+    const titleEl = continuePanel.querySelector('.ezam-continue-title');
+    if (titleEl) {
+      titleEl.textContent = lastOpened.title || lastOpened.id;
+    }
+    continuePanel.classList.add('ezam-continue--show');
+  }
+
+  function recordLastOpened(id, row, url) {
+    const safeId = normalizeOfferId(id);
+    const safeUrl = isTrustedOfferUrl(url) ? url : buildOfferUrl(safeId);
+    if (!safeId || !safeUrl) return;
+    saveLastOpened({
+      id: safeId,
+      title: getRowTitle(row),
+      url: safeUrl,
+      ts: Date.now()
+    });
+  }
+
+  function scrollToRowById(id) {
+    const safeId = normalizeOfferId(id);
+    if (!safeId) return;
+    const row = Array.from(document.querySelectorAll(ROW_SELECTOR)).find(
+      (candidate) => candidate.dataset.ezamOfferId === safeId
+    );
+    if (row) {
+      selectRow(row);
+      return;
+    }
+    showToast(t('rowNotFound', 'Row not found on this page'));
+  }
+
   function markOpened(id, row) {
-    if (!settings.showVisited) return;
+    if (row && id) {
+      recordLastOpened(id, row, row.dataset.ezamOfferUrl || '');
+    }
+    if (!id) return;
     openedIds.add(id);
     saveOpenedIds();
-    if (row) row.classList.add('ezam-opened');
+    if (settings.showVisited && row) {
+      row.classList.add('ezam-opened');
+    }
   }
 
   function applyAnchor(anchor, url, id, row) {
@@ -456,6 +685,35 @@
     const container = document.createElement('span');
     container.className = 'ezam-actions';
 
+    const starBtn = document.createElement('button');
+    starBtn.type = 'button';
+    starBtn.className = 'ezam-action-btn btn btn-outline-secondary btn-sm';
+    starBtn.setAttribute('aria-label', t('starOffer', 'Star'));
+    starBtn.dataset.ezamStar = id;
+    const starIcon = document.createElement('i');
+    starIcon.className = 'material-icons ezam-icon';
+    starBtn.appendChild(starIcon);
+
+    const updateStarIcon = () => {
+      const active = starredIds.has(id);
+      starIcon.textContent = active ? 'star' : 'star_border';
+      const label = active ? t('unstarOffer', 'Unstar') : t('starOffer', 'Star');
+      starBtn.title = label;
+      starBtn.setAttribute('aria-label', label);
+      starBtn.classList.toggle('ezam-star-btn--active', active);
+    };
+
+    starBtn.addEventListener('click', (event) => {
+      event.stopPropagation();
+      const row =
+        event.currentTarget.closest(ROW_SELECTOR) ||
+        event.currentTarget.closest('tr')?.previousElementSibling;
+      toggleStar(id, row);
+      updateStarIcon();
+    });
+
+    updateStarIcon();
+
     const copyIdBtn = document.createElement('button');
     copyIdBtn.type = 'button';
     copyIdBtn.className = 'ezam-action-btn btn btn-outline-secondary btn-sm';
@@ -498,6 +756,7 @@
         .catch(() => showActionFeedback(copyLinkBtn, t('actionFail', 'Fail')));
     });
 
+    container.appendChild(starBtn);
     container.appendChild(copyIdBtn);
     container.appendChild(copyLinkBtn);
 
@@ -756,36 +1015,491 @@
     return new Date(year, month, day, hour || 0, minute || 0, 0, 0);
   }
 
-  function applyBadges(row, cells) {
+  function getRowStatusFlags(cells) {
+    if (!cells || cells.length < 9) {
+      return { isSoon: false, isNew: false };
+    }
+    const submissionText = cells[7].textContent.trim();
+    const initiationText = cells[8].textContent.trim();
+    const submissionDate = parsePolishDate(submissionText);
+    const initiationDate = parsePolishDate(initiationText);
+    const now = new Date();
+
+    const isSoon =
+      !!submissionDate &&
+      Math.ceil((submissionDate - now) / (1000 * 60 * 60 * 24)) <= settings.closingSoonDays &&
+      submissionDate >= now;
+    const isNew = !!initiationDate && initiationDate.toDateString() === now.toDateString();
+
+    return { isSoon, isNew };
+  }
+
+  function applyBadges(row, cells, flags = null) {
     if (!settings.showBadges) return;
     if (cells.length < 9) return;
 
     const titleCell = cells[0];
     titleCell.querySelectorAll('.ezam-badge').forEach((badge) => badge.remove());
+    const status = flags || getRowStatusFlags(cells);
 
-    const submissionText = cells[7].textContent.trim();
-    const initiationText = cells[8].textContent.trim();
-    const submissionDate = parsePolishDate(submissionText);
-    const initiationDate = parsePolishDate(initiationText);
-
-    const now = new Date();
-    if (submissionDate) {
-      const diffDays = Math.ceil((submissionDate - now) / (1000 * 60 * 60 * 24));
-      if (diffDays >= 0 && diffDays <= settings.closingSoonDays) {
-        const badge = document.createElement('span');
-        badge.className = 'ezam-badge ezam-badge--soon';
-        badge.textContent = t('closingSoon', 'Closing soon');
-        titleCell.appendChild(badge);
-      }
+    if (status.isSoon) {
+      const badge = document.createElement('span');
+      badge.className = 'ezam-badge ezam-badge--soon';
+      badge.textContent = t('closingSoon', 'Closing soon');
+      titleCell.appendChild(badge);
     }
 
-    if (initiationDate) {
-      const sameDay = initiationDate.toDateString() === now.toDateString();
-      if (sameDay) {
-        const badge = document.createElement('span');
-        badge.className = 'ezam-badge ezam-badge--new';
-        badge.textContent = t('newBadge', 'New');
-        titleCell.appendChild(badge);
+    if (status.isNew) {
+      const badge = document.createElement('span');
+      badge.className = 'ezam-badge ezam-badge--new';
+      badge.textContent = t('newBadge', 'New');
+      titleCell.appendChild(badge);
+    }
+  }
+
+  function ensureFilterBar() {
+    if (filterBar) return;
+    const container = document.querySelector('#tenderListTable');
+    if (!container) return;
+    filterBar = document.createElement('div');
+    filterBar.className = 'ezam-filter-bar';
+    container.prepend(filterBar);
+  }
+
+  function buildChip(label, active, onClick) {
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = `ezam-chip${active ? ' ezam-chip--active' : ''}`;
+    chip.textContent = label;
+    chip.addEventListener('click', onClick);
+    return chip;
+  }
+
+  function collectFacetValues() {
+    const rows = Array.from(document.querySelectorAll(ROW_SELECTOR));
+    const orgCounts = new Map();
+    const cityCounts = new Map();
+
+    rows.forEach((row) => {
+      const org = row.dataset.ezamOrganization || '';
+      const city = row.dataset.ezamCity || '';
+      if (org) orgCounts.set(org, (orgCounts.get(org) || 0) + 1);
+      if (city) cityCounts.set(city, (cityCounts.get(city) || 0) + 1);
+    });
+
+    const topValues = (map) =>
+      Array.from(map.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, MAX_CHIPS)
+        .map(([value]) => value);
+
+    return {
+      organizations: topValues(orgCounts),
+      cities: topValues(cityCounts)
+    };
+  }
+
+  function applyFilters() {
+    const rows = Array.from(document.querySelectorAll(ROW_SELECTOR));
+    rows.forEach((row) => {
+      let visible = true;
+      if (filterState.starredOnly && !row.classList.contains('ezam-starred')) {
+        visible = false;
+      }
+      if (filterState.status === 'new' && row.dataset.ezamStatusNew !== '1') {
+        visible = false;
+      }
+      if (filterState.status === 'soon' && row.dataset.ezamStatusSoon !== '1') {
+        visible = false;
+      }
+      if (filterState.city && row.dataset.ezamCity !== filterState.city) {
+        visible = false;
+      }
+      if (filterState.organization && row.dataset.ezamOrganization !== filterState.organization) {
+        visible = false;
+      }
+      row.classList.toggle('ezam-filter-hidden', !visible);
+      const details = row.nextElementSibling;
+      if (details && details.classList.contains('ezam-expand-row')) {
+        details.classList.toggle('ezam-filter-hidden', !visible);
+      }
+    });
+  }
+
+  function updateFilterBar() {
+    ensureFilterBar();
+    if (!filterBar) return;
+
+    const facets = collectFacetValues();
+    if (filterState.city && !facets.cities.includes(filterState.city)) {
+      filterState.city = '';
+    }
+    if (filterState.organization && !facets.organizations.includes(filterState.organization)) {
+      filterState.organization = '';
+    }
+
+    filterBar.textContent = '';
+
+    const statusGroup = document.createElement('div');
+    statusGroup.className = 'ezam-filter-group';
+    const statusLabel = document.createElement('span');
+    statusLabel.className = 'ezam-filter-label';
+    statusLabel.textContent = t('filterStatus', 'Status');
+    statusGroup.appendChild(statusLabel);
+    ['all', 'new', 'soon'].forEach((status) => {
+      const label =
+        status === 'all'
+          ? t('filterAll', 'All')
+          : status === 'new'
+            ? t('filterNew', 'New')
+            : t('filterSoon', 'Closing soon');
+      statusGroup.appendChild(
+        buildChip(label, filterState.status === status, () => {
+          filterState.status = status;
+          applyFilters();
+          updateFilterBar();
+        })
+      );
+    });
+
+    const orgGroup = document.createElement('div');
+    orgGroup.className = 'ezam-filter-group';
+    const orgLabel = document.createElement('span');
+    orgLabel.className = 'ezam-filter-label';
+    orgLabel.textContent = t('filterOrganization', 'Organization');
+    orgGroup.appendChild(orgLabel);
+    orgGroup.appendChild(
+      buildChip(t('filterAll', 'All'), !filterState.organization, () => {
+        filterState.organization = '';
+        applyFilters();
+        updateFilterBar();
+      })
+    );
+    facets.organizations.forEach((org) => {
+      orgGroup.appendChild(
+        buildChip(org, filterState.organization === org, () => {
+          filterState.organization = org;
+          applyFilters();
+          updateFilterBar();
+        })
+      );
+    });
+
+    const cityGroup = document.createElement('div');
+    cityGroup.className = 'ezam-filter-group';
+    const cityLabel = document.createElement('span');
+    cityLabel.className = 'ezam-filter-label';
+    cityLabel.textContent = t('filterCity', 'City');
+    cityGroup.appendChild(cityLabel);
+    cityGroup.appendChild(
+      buildChip(t('filterAll', 'All'), !filterState.city, () => {
+        filterState.city = '';
+        applyFilters();
+        updateFilterBar();
+      })
+    );
+    facets.cities.forEach((city) => {
+      cityGroup.appendChild(
+        buildChip(city, filterState.city === city, () => {
+          filterState.city = city;
+          applyFilters();
+          updateFilterBar();
+        })
+      );
+    });
+
+    const starGroup = document.createElement('div');
+    starGroup.className = 'ezam-filter-group';
+    const starLabel = document.createElement('span');
+    starLabel.className = 'ezam-filter-label';
+    starLabel.textContent = t('filterStarred', 'Starred');
+    starGroup.appendChild(starLabel);
+    starGroup.appendChild(
+      buildChip(
+        filterState.starredOnly ? t('filterStarredOn', 'On') : t('filterStarredOff', 'Off'),
+        filterState.starredOnly,
+        () => {
+          filterState.starredOnly = !filterState.starredOnly;
+          applyFilters();
+          updateFilterBar();
+        }
+      )
+    );
+
+    const clearBtn = document.createElement('button');
+    clearBtn.type = 'button';
+    clearBtn.className = 'ezam-filter-clear btn btn-outline-secondary btn-sm';
+    clearBtn.textContent = t('filterClear', 'Clear filters');
+    clearBtn.addEventListener('click', () => {
+      filterState = { status: 'all', city: '', organization: '', starredOnly: false };
+      applyFilters();
+      updateFilterBar();
+    });
+
+    filterBar.appendChild(statusGroup);
+    filterBar.appendChild(orgGroup);
+    filterBar.appendChild(cityGroup);
+    filterBar.appendChild(starGroup);
+    filterBar.appendChild(clearBtn);
+  }
+
+  function scheduleFilterRefresh() {
+    if (filterRefreshTimer) clearTimeout(filterRefreshTimer);
+    filterRefreshTimer = setTimeout(() => {
+      updateFilterBar();
+      applyFilters();
+    }, 120);
+  }
+
+  function ensureAutocomplete() {
+    if (jumpDatalist) return;
+    jumpDatalist = document.createElement('datalist');
+    jumpDatalist.id = AUTOCOMPLETE_ID;
+    document.body.appendChild(jumpDatalist);
+  }
+
+  function updateAutocomplete() {
+    ensureAutocomplete();
+    if (!jumpDatalist) return;
+    jumpDatalist.textContent = '';
+    const rows = Array.from(document.querySelectorAll(ROW_SELECTOR));
+    rows.forEach((row) => {
+      const id = row.dataset.ezamOfferId || '';
+      const title = getRowTitle(row);
+      if (!id && !title) return;
+      const option = document.createElement('option');
+      option.value = id ? `${id} - ${title}` : title;
+      jumpDatalist.appendChild(option);
+    });
+  }
+
+  function getTotalPages() {
+    const links = Array.from(document.querySelectorAll('.pagination li a'));
+    const numbers = links
+      .map((link) => Number(link.textContent.trim()))
+      .filter((value) => Number.isFinite(value));
+    return numbers.length ? Math.max(...numbers) : 0;
+  }
+
+  function updatePageIndicator() {
+    if (!pageIndicator) return;
+    const current = getActivePage();
+    const total = getTotalPages();
+    if (!current) {
+      pageIndicator.textContent = '';
+      return;
+    }
+    pageIndicator.textContent = total
+      ? t('pageProgress', 'Page {current}/{total}', { current, total })
+      : t('pageCurrent', 'Page {current}', { current });
+  }
+
+  function ensureShortcutsOverlay() {
+    if (shortcutsOverlay) return;
+    shortcutsOverlay = document.createElement('div');
+    shortcutsOverlay.className = 'ezam-overlay';
+    shortcutsOverlay.setAttribute('role', 'dialog');
+    shortcutsOverlay.setAttribute('aria-modal', 'true');
+
+    const panel = document.createElement('div');
+    panel.className = 'ezam-overlay-panel';
+
+    const heading = document.createElement('div');
+    heading.className = 'ezam-overlay-title';
+    heading.textContent = t('shortcutsTitle', 'Keyboard shortcuts');
+
+    const list = document.createElement('div');
+    list.className = 'ezam-shortcuts';
+    const shortcuts = [
+      ['?', t('shortcutHelp', 'Show this help')],
+      ['J/K', t('shortcutMove', 'Move selection')],
+      ['Enter', t('shortcutOpen', 'Open selected row')],
+      ['Shift+Enter', t('shortcutOpenBg', 'Open in background')],
+      ['N', t('shortcutNextUnread', 'Open next unread')],
+      ['F', t('shortcutFocus', 'Toggle focus mode')],
+      ['S', t('shortcutStar', 'Star selected row')]
+    ];
+    shortcuts.forEach(([key, label]) => {
+      const row = document.createElement('div');
+      row.className = 'ezam-shortcut-row';
+      const keyEl = document.createElement('span');
+      keyEl.className = 'ezam-shortcut-key';
+      keyEl.textContent = key;
+      const labelEl = document.createElement('span');
+      labelEl.className = 'ezam-shortcut-label';
+      labelEl.textContent = label;
+      row.appendChild(keyEl);
+      row.appendChild(labelEl);
+      list.appendChild(row);
+    });
+
+    const close = document.createElement('button');
+    close.type = 'button';
+    close.className = 'btn btn-outline-secondary btn-sm';
+    close.textContent = t('close', 'Close');
+    close.addEventListener('click', () => toggleShortcutsOverlay(false));
+
+    panel.appendChild(heading);
+    panel.appendChild(list);
+    panel.appendChild(close);
+    shortcutsOverlay.appendChild(panel);
+    shortcutsOverlay.addEventListener('click', (event) => {
+      if (event.target === shortcutsOverlay) toggleShortcutsOverlay(false);
+    });
+    document.body.appendChild(shortcutsOverlay);
+  }
+
+  function toggleShortcutsOverlay(force) {
+    ensureShortcutsOverlay();
+    if (!shortcutsOverlay) return;
+    const shouldShow = force ?? !shortcutsOverlay.classList.contains('ezam-overlay--show');
+    shortcutsOverlay.classList.toggle('ezam-overlay--show', shouldShow);
+  }
+
+  function ensureCompareOverlay() {
+    if (compareOverlay) return;
+    compareOverlay = document.createElement('div');
+    compareOverlay.className = 'ezam-overlay';
+    compareOverlay.setAttribute('role', 'dialog');
+    compareOverlay.setAttribute('aria-modal', 'true');
+
+    const panel = document.createElement('div');
+    panel.className = 'ezam-overlay-panel ezam-compare-panel';
+
+    const heading = document.createElement('div');
+    heading.className = 'ezam-overlay-title';
+    heading.textContent = t('compareTitle', 'Compare selected');
+
+    const content = document.createElement('div');
+    content.className = 'ezam-compare-content';
+
+    const close = document.createElement('button');
+    close.type = 'button';
+    close.className = 'btn btn-outline-secondary btn-sm';
+    close.textContent = t('close', 'Close');
+    close.addEventListener('click', () => toggleCompareOverlay(false));
+
+    panel.appendChild(heading);
+    panel.appendChild(content);
+    panel.appendChild(close);
+    compareOverlay.appendChild(panel);
+    compareOverlay.addEventListener('click', (event) => {
+      if (event.target === compareOverlay) toggleCompareOverlay(false);
+    });
+    document.body.appendChild(compareOverlay);
+  }
+
+  function renderCompareContent() {
+    if (!compareOverlay) return;
+    const content = compareOverlay.querySelector('.ezam-compare-content');
+    if (!content) return;
+    content.textContent = '';
+
+    const rows = Array.from(document.querySelectorAll(ROW_SELECTOR)).filter((row) =>
+      selectedIds.has(row.dataset.ezamOfferId || '')
+    );
+    if (!rows.length) {
+      const empty = document.createElement('div');
+      empty.className = 'ezam-empty';
+      empty.textContent = t('compareEmpty', 'Select at least one row to compare.');
+      content.appendChild(empty);
+      return;
+    }
+
+    const table = document.createElement('table');
+    table.className = 'ezam-compare-table';
+
+    const headerRow = document.createElement('tr');
+    const headerSpacer = document.createElement('th');
+    headerSpacer.textContent = '';
+    headerRow.appendChild(headerSpacer);
+    rows.forEach((row) => {
+      const th = document.createElement('th');
+      th.textContent = getRowTitle(row) || row.dataset.ezamOfferId || '';
+      headerRow.appendChild(th);
+    });
+    table.appendChild(headerRow);
+
+    const fields = [
+      ['detailOrganization', 4],
+      ['detailCity', 5],
+      ['detailProvince', 6],
+      ['detailSubmission', 7],
+      ['detailInitiation', 8]
+    ];
+    fields.forEach(([labelKey, index]) => {
+      const tr = document.createElement('tr');
+      const labelCell = document.createElement('td');
+      labelCell.className = 'ezam-compare-label';
+      labelCell.textContent = t(labelKey, labelKey);
+      tr.appendChild(labelCell);
+      rows.forEach((row) => {
+        const cell = document.createElement('td');
+        const rowCells = row.querySelectorAll('td');
+        cell.textContent = rowCells[index]?.textContent.trim() || '';
+        tr.appendChild(cell);
+      });
+      table.appendChild(tr);
+    });
+
+    content.appendChild(table);
+  }
+
+  function toggleCompareOverlay(force) {
+    ensureCompareOverlay();
+    if (!compareOverlay) return;
+    const shouldShow = force ?? !compareOverlay.classList.contains('ezam-overlay--show');
+    compareOverlay.classList.toggle('ezam-overlay--show', shouldShow);
+    if (shouldShow) renderCompareContent();
+  }
+
+  function openUrlsSequential(urls, background) {
+    if (!urls.length) return;
+    const openNext = (index) => {
+      if (index >= urls.length) return;
+      const url = urls[index];
+      const isLast = index === urls.length - 1;
+      const active = !background && isLast;
+      openWithBackground(url, active).then((opened) => {
+        if (!opened) openInNewTab(url);
+        setTimeout(() => openNext(index + 1), OPEN_THROTTLE_MS);
+      });
+    };
+    openNext(0);
+  }
+
+  function openNextUnread() {
+    const rows = Array.from(document.querySelectorAll(ROW_SELECTOR)).filter(
+      (row) => !row.classList.contains('ezam-filter-hidden')
+    );
+    const target = rows.find((row) => !openedIds.has(row.dataset.ezamOfferId || ''));
+    if (!target) {
+      showToast(t('noUnread', 'No unread offers on this page'));
+      return;
+    }
+    const id = normalizeOfferId(target.dataset.ezamOfferId);
+    const url = id ? buildOfferUrl(id) : '';
+    if (!url) return;
+    selectRow(target);
+    saveScrollState();
+    openOffer(url, { background: settings.openInBackground });
+    markOpened(id, target);
+  }
+
+  function toggleFocusMode() {
+    focusModeEnabled = !focusModeEnabled;
+    applyFocusMode();
+  }
+
+  function applyFocusMode() {
+    document.documentElement.classList.toggle('ezam-focus', focusModeEnabled);
+    document.querySelectorAll('.ezam-focus-row').forEach((row) => {
+      row.classList.remove('ezam-focus-row');
+    });
+    if (focusModeEnabled) {
+      const selected = document.querySelector('.ezam-row-selected');
+      if (selected) {
+        selected.classList.add('ezam-focus-row');
       }
     }
   }
@@ -942,13 +1656,19 @@
     row.classList.add('ezam-link-row');
     row.dataset.ezamOfferId = id;
     row.dataset.ezamOfferUrl = url;
+    row.dataset.ezamOrganization = cells[4]?.textContent.trim() || '';
+    row.dataset.ezamCity = cells[5]?.textContent.trim() || '';
+    const statusFlags = getRowStatusFlags(cells);
+    row.dataset.ezamStatusNew = statusFlags.isNew ? '1' : '';
+    row.dataset.ezamStatusSoon = statusFlags.isSoon ? '1' : '';
+    row.classList.toggle('ezam-starred', starredIds.has(id));
 
     if (settings.showVisited && openedIds.has(id)) {
       row.classList.add('ezam-opened');
     }
 
     applyTooltips(cells);
-    applyBadges(row, cells);
+    applyBadges(row, cells, statusFlags);
 
     const detailsAnchor = row.querySelector('a:not(.ezam-open-link)');
     if (detailsAnchor) {
@@ -1009,6 +1729,9 @@
   function scanExisting() {
     removeExtraColumn(document.querySelector('#tenderListTable table'));
     document.querySelectorAll(ROW_SELECTOR).forEach(addLinkToRow);
+    scheduleFilterRefresh();
+    updateAutocomplete();
+    updatePageIndicator();
   }
 
   function applyStickyHeader() {
@@ -1039,6 +1762,9 @@
       row.classList.remove('ezam-opened');
       addLinkToRow(row);
     });
+    scheduleFilterRefresh();
+    updateAutocomplete();
+    updatePageIndicator();
   }
 
   function getFilterControls(form) {
@@ -1196,6 +1922,9 @@
     if (count) {
       count.textContent = t('selectedCount', 'Selected: {count}', { count: selectedIds.size });
     }
+    if (compareOverlay && compareOverlay.classList.contains('ezam-overlay--show')) {
+      renderCompareContent();
+    }
   }
 
   function getRowSelectBox(row) {
@@ -1211,6 +1940,7 @@
 
   function selectAllRows() {
     document.querySelectorAll(ROW_SELECTOR).forEach((row) => {
+      if (row.classList.contains('ezam-filter-hidden')) return;
       const id = normalizeOfferId(row.dataset.ezamOfferId);
       if (!id) return;
       const box = getRowSelectBox(row);
@@ -1231,14 +1961,16 @@
   function openSelected() {
     const ids = Array.from(selectedIds);
     if (!ids.length) return;
-    const urls = ids.map((id) => buildOfferUrl(id)).filter((url) => isTrustedOfferUrl(url));
-
-    urls.forEach((url, index) => {
-      const active = !settings.openInBackground && index === urls.length - 1;
-      openWithBackground(url, active).then((opened) => {
-        if (!opened) openInNewTab(url);
-      });
-    });
+    const rows = Array.from(document.querySelectorAll(ROW_SELECTOR));
+    const urls = ids
+      .map((id) => {
+        const url = buildOfferUrl(id);
+        const row = rows.find((candidate) => candidate.dataset.ezamOfferId === id);
+        if (row && url) markOpened(id, row);
+        return url;
+      })
+      .filter((url) => isTrustedOfferUrl(url));
+    openUrlsSequential(urls, settings.openInBackground);
   }
 
   function findRowByQuery(query) {
@@ -1256,9 +1988,12 @@
   function selectRow(row) {
     if (!row) return;
     document.querySelectorAll('.ezam-row-selected').forEach((r) => {
-      r.classList.remove('ezam-row-selected');
+      r.classList.remove('ezam-row-selected', 'ezam-focus-row');
     });
     row.classList.add('ezam-row-selected');
+    if (focusModeEnabled) {
+      row.classList.add('ezam-focus-row');
+    }
     rowCursor = Array.from(document.querySelectorAll(ROW_SELECTOR)).indexOf(row);
     row.scrollIntoView({ block: 'center' });
   }
@@ -1275,6 +2010,25 @@
     if (!settings.keyboardNav) return;
     const target = event.target;
     if (target.closest('input, textarea, select, [contenteditable="true"]')) return;
+
+    if (event.key === '?') {
+      event.preventDefault();
+      toggleShortcutsOverlay();
+      return;
+    }
+
+    if (event.key === 'Escape') {
+      if (shortcutsOverlay && shortcutsOverlay.classList.contains('ezam-overlay--show')) {
+        event.preventDefault();
+        toggleShortcutsOverlay(false);
+        return;
+      }
+      if (compareOverlay && compareOverlay.classList.contains('ezam-overlay--show')) {
+        event.preventDefault();
+        toggleCompareOverlay(false);
+        return;
+      }
+    }
 
     if (event.key === 'ArrowDown') {
       event.preventDefault();
@@ -1295,6 +2049,19 @@
           openOffer(url);
         }
         markOpened(id, row);
+      }
+    } else if (event.key.toLowerCase() === 'n') {
+      event.preventDefault();
+      openNextUnread();
+    } else if (event.key.toLowerCase() === 'f') {
+      event.preventDefault();
+      toggleFocusMode();
+    } else if (event.key.toLowerCase() === 's') {
+      const rows = Array.from(document.querySelectorAll(ROW_SELECTOR));
+      const row = rows[rowCursor];
+      if (row && row.dataset.ezamOfferId) {
+        event.preventDefault();
+        toggleStar(row.dataset.ezamOfferId, row);
       }
     } else if (event.altKey && event.key === 'ArrowLeft') {
       const { prev } = getPaginationLinks();
@@ -1328,6 +2095,7 @@
     jumpInput.type = 'text';
     jumpInput.placeholder = t('jumpPlaceholder', 'Jump to ID/title');
     jumpInput.className = 'ezam-toolbar-input form-control';
+    jumpInput.setAttribute('list', AUTOCOMPLETE_ID);
     jumpInput.addEventListener('input', () => {
       const row = findRowByQuery(jumpInput.value);
       if (row) selectRow(row);
@@ -1360,6 +2128,34 @@
       openSelected();
     });
 
+    const nextUnreadBtn = document.createElement('button');
+    nextUnreadBtn.type = 'button';
+    nextUnreadBtn.className = 'btn btn-outline-secondary btn-sm';
+    nextUnreadBtn.textContent = t('openNextUnread', 'Next unread');
+    nextUnreadBtn.addEventListener('click', openNextUnread);
+
+    const focusBtn = document.createElement('button');
+    focusBtn.type = 'button';
+    focusBtn.className = 'btn btn-outline-secondary btn-sm';
+    focusBtn.textContent = t('focusMode', 'Focus');
+    focusBtn.addEventListener('click', () => {
+      toggleFocusMode();
+      focusBtn.classList.toggle('ezam-focus-btn--active', focusModeEnabled);
+    });
+    focusBtn.classList.toggle('ezam-focus-btn--active', focusModeEnabled);
+
+    const compareBtn = document.createElement('button');
+    compareBtn.type = 'button';
+    compareBtn.className = 'btn btn-outline-secondary btn-sm';
+    compareBtn.textContent = t('compareSelected', 'Compare');
+    compareBtn.addEventListener('click', () => toggleCompareOverlay(true));
+
+    const helpBtn = document.createElement('button');
+    helpBtn.type = 'button';
+    helpBtn.className = 'btn btn-outline-secondary btn-sm';
+    helpBtn.textContent = t('shortcutsButton', 'Shortcuts');
+    helpBtn.addEventListener('click', () => toggleShortcutsOverlay(true));
+
     const selectAllBtn = document.createElement('button');
     selectAllBtn.type = 'button';
     selectAllBtn.className = 'btn btn-outline-secondary btn-sm';
@@ -1375,6 +2171,9 @@
     const selectedCount = document.createElement('span');
     selectedCount.className = 'ezam-selected-count';
     selectedCount.textContent = t('selectedCount', 'Selected: {count}', { count: 0 });
+
+    pageIndicator = document.createElement('span');
+    pageIndicator.className = 'ezam-page-indicator';
 
     const presetSelect = document.createElement('select');
     presetSelect.className = 'ezam-preset-select form-control';
@@ -1402,12 +2201,17 @@
     if (settings.quickJump) content.appendChild(jumpInput);
     content.appendChild(prevBtn);
     content.appendChild(nextBtn);
+    content.appendChild(nextUnreadBtn);
+    content.appendChild(focusBtn);
+    content.appendChild(compareBtn);
+    content.appendChild(helpBtn);
     if (settings.multiSelect) {
       content.appendChild(openSelectedBtn);
       content.appendChild(selectAllBtn);
       content.appendChild(clearBtn);
       content.appendChild(selectedCount);
     }
+    content.appendChild(pageIndicator);
     content.appendChild(presetSelect);
     content.appendChild(savePresetBtn);
 
@@ -1416,6 +2220,7 @@
     document.body.appendChild(toolbar);
     updatePresetSelect();
     applyToolbarState();
+    updatePageIndicator();
   }
 
   function applyToolbarState() {
@@ -1449,12 +2254,17 @@
       ensureHeaderControls(document.querySelector('#tenderListTable table'));
       applyStickyHeader();
       applyFreezeColumns();
+      scheduleFilterRefresh();
+      updateAutocomplete();
+      updatePageIndicator();
     }).observe(document.body, { childList: true, subtree: true });
   }
 
   loadSettings()
     .then(() => loadMessages(settings.language))
     .then(() => loadNotes())
+    .then(() => loadStarred())
+    .then(() => loadLastOpened())
     .then(() => {
       t = translate;
 
@@ -1466,6 +2276,8 @@
       setupFilterPersistence();
       ensureHeaderControls(document.querySelector('#tenderListTable table'));
       ensureToolbar();
+      ensureContinuePanel();
+      applyFocusMode();
       updateToolbarSelection();
       restoreScrollState();
       document.addEventListener('keydown', handleKeyboardNavigation);

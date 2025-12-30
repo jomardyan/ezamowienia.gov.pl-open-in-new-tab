@@ -245,6 +245,108 @@
   "toolbarExpand": {
     "message": "Pokaż pasek"
   },
+  "continueHeading": {
+    "message": "Kontynuuj czytanie"
+  },
+  "continueOpen": {
+    "message": "Otwórz ostatnią"
+  },
+  "continueBack": {
+    "message": "Wróć do wiersza"
+  },
+  "rowNotFound": {
+    "message": "Nie znaleziono wiersza na tej stronie"
+  },
+  "filterStatus": {
+    "message": "Status"
+  },
+  "filterAll": {
+    "message": "Wszystkie"
+  },
+  "filterNew": {
+    "message": "Nowe"
+  },
+  "filterSoon": {
+    "message": "Bliski termin"
+  },
+  "filterOrganization": {
+    "message": "Organizacja"
+  },
+  "filterCity": {
+    "message": "Miasto"
+  },
+  "filterStarred": {
+    "message": "Ulubione"
+  },
+  "filterStarredOn": {
+    "message": "Wł."
+  },
+  "filterStarredOff": {
+    "message": "Wył."
+  },
+  "filterClear": {
+    "message": "Wyczyść filtry"
+  },
+  "pageProgress": {
+    "message": "Strona {current}/{total}"
+  },
+  "pageCurrent": {
+    "message": "Strona {current}"
+  },
+  "shortcutsTitle": {
+    "message": "Skróty klawiaturowe"
+  },
+  "shortcutsButton": {
+    "message": "Skróty"
+  },
+  "shortcutHelp": {
+    "message": "Pokaż pomoc"
+  },
+  "shortcutMove": {
+    "message": "Przesuń zaznaczenie"
+  },
+  "shortcutOpen": {
+    "message": "Otwórz zaznaczony wiersz"
+  },
+  "shortcutOpenBg": {
+    "message": "Otwórz w tle"
+  },
+  "shortcutNextUnread": {
+    "message": "Otwórz następny nieczytany"
+  },
+  "shortcutFocus": {
+    "message": "Przełącz tryb skupienia"
+  },
+  "shortcutStar": {
+    "message": "Oznacz gwiazdką zaznaczony wiersz"
+  },
+  "close": {
+    "message": "Zamknij"
+  },
+  "compareTitle": {
+    "message": "Porównaj wybrane"
+  },
+  "compareSelected": {
+    "message": "Porównaj"
+  },
+  "compareEmpty": {
+    "message": "Zaznacz co najmniej jeden wiersz do porównania."
+  },
+  "openNextUnread": {
+    "message": "Następny nieczytany"
+  },
+  "focusMode": {
+    "message": "Skupienie"
+  },
+  "noUnread": {
+    "message": "Brak nieczytanych ofert na tej stronie"
+  },
+  "starOffer": {
+    "message": "Oznacz gwiazdką"
+  },
+  "unstarOffer": {
+    "message": "Usuń gwiazdkę"
+  },
   "descLanguage": {
     "message": "Wybierz język interfejsu rozszerzenia."
   },
